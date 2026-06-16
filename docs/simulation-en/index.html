@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Agent World Will Simulation</title>
+<style>
+:root{
+  --bg:#050814;--panel:rgba(7,12,29,.82);--panel2:rgba(5,9,22,.68);--line:rgba(151,229,255,.24);
+  --gold:#ffd978;--cyan:#80ecff;--green:#8dffb4;--purple:#cdb5ff;--red:#ff7b8e;--text:#eef7ff;--muted:#aab8d4;
+}
+*{box-sizing:border-box}html{min-height:100%;background:#050814}html,body{min-height:100%;background:#050814}body{margin:0;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(circle at 50% 0,#172449 0,#050814 52%,#01030a 100%);overflow:auto}
+.app{display:grid;grid-template-columns:minmax(280px,340px) minmax(520px,1fr) minmax(300px,380px);gap:14px;height:100vh;min-height:640px;padding:14px;background:#050814}.panel{border:1px solid var(--line);border-radius:24px;background:var(--panel);box-shadow:0 20px 70px rgba(0,0,0,.34);backdrop-filter:blur(16px);overflow:hidden}.left{padding:20px 18px;overflow:auto;display:flex;flex-direction:column;min-height:0}.right{padding:18px;overflow:auto;min-height:0}.world{position:relative;overflow:hidden;min-height:0;background:radial-gradient(circle at 50% 45%,rgba(128,236,255,.14),transparent 21%),linear-gradient(to top,rgba(0,0,0,.38),transparent 48%)}
+h1{font-size:23px;line-height:1.14;margin:0 0 9px}.sub{color:var(--muted);font-size:12.5px;line-height:1.5;margin:0 0 13px}.badge{display:inline-block;border:1px solid rgba(128,236,255,.24);border-radius:999px;padding:4px 8px;color:#c8efff;background:rgba(128,236,255,.07);font-size:10.5px;margin:0 4px 5px 0}.metric{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:13px 0 13px}.box{border:1px solid var(--line);border-radius:15px;padding:10px;background:rgba(255,255,255,.035)}.box b{display:block;font-size:clamp(18px,2.4vw,22px);color:var(--cyan);line-height:1}.box b.phaseText{font-size:clamp(16px,2vw,20px);color:var(--gold);white-space:nowrap}.box b.compactText{font-size:clamp(13px,1.6vw,17px);color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.box.wide{grid-column:1/-1}.box b.listText{font-size:clamp(12px,1.45vw,15px);color:#dff8ff;white-space:normal;line-height:1.42;overflow-wrap:anywhere}.distGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:7px}.distItem{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 7px;border:1px solid rgba(151,229,255,.16);border-radius:10px;background:rgba(128,236,255,.055);font-size:11.5px;line-height:1.1;color:#dff8ff}.distItem strong{color:#fff4c9;font-size:12px}.distItem.zero{opacity:.38}.distItem.hot{border-color:rgba(255,217,120,.36);background:rgba(255,217,120,.085)}.distItem.good{border-color:rgba(141,255,180,.32);background:rgba(141,255,180,.075)}.distItem.warn{border-color:rgba(255,217,120,.36);background:rgba(255,217,120,.085)}.distItem.danger{border-color:rgba(255,123,142,.36);background:rgba(255,123,142,.085)}.box span{font-size:11px;color:var(--muted)}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}button{border:1px solid rgba(151,229,255,.28);background:rgba(128,236,255,.08);color:var(--text);border-radius:13px;padding:9px 9px;cursor:pointer;font-weight:700;font-size:12px;min-width:0;overflow-wrap:anywhere}button:hover{border-color:rgba(255,217,120,.6);background:rgba(255,217,120,.1)}button.active{border-color:rgba(141,255,180,.75);background:rgba(141,255,180,.13);color:#dcffe5}.legend{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px;overflow:visible}.legend p{margin:0;padding:4px 6px;border:1px solid rgba(151,229,255,.16);border-radius:999px;background:rgba(128,236,255,.055);color:#e6f6ff;font-size:10px;line-height:1.1;white-space:nowrap;min-width:max-content;text-align:center}.dotkey{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;vertical-align:-2px;box-shadow:0 0 9px currentColor}.linekey{display:inline-block;width:16px;height:3px;border-radius:999px;margin-right:5px;vertical-align:2px;background:#8dffb4;box-shadow:0 0 9px rgba(141,255,180,.75)}.legend::-webkit-scrollbar{display:none}.sky{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(255,217,120,.08),transparent 16%),radial-gradient(circle at 16% 78%,rgba(141,255,180,.09),transparent 20%),radial-gradient(circle at 88% 84%,rgba(255,123,142,.08),transparent 18%)}svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.district{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);width:106px;height:88px;border:1px solid rgba(180,235,255,.24);border-radius:24px;background:linear-gradient(145deg,rgba(128,236,255,.11),rgba(255,217,120,.07));display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;color:#eaf8ff;font-size:clamp(10px,1.15vw,12px);line-height:1.18;overflow-wrap:anywhere;box-shadow:0 0 34px rgba(128,236,255,.10);z-index:2}.district.core{width:128px;height:128px;border-radius:50%;border-color:rgba(255,217,120,.58);background:radial-gradient(circle,rgba(255,217,120,.18),rgba(128,236,255,.08));box-shadow:0 0 70px rgba(255,217,120,.22)}.district.home{border-color:rgba(141,255,180,.42);box-shadow:0 0 46px rgba(141,255,180,.15)}.district.memorial{border-color:rgba(255,217,120,.34);opacity:.88}.agent{position:absolute;cursor:pointer;left:50%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan),0 0 24px rgba(128,236,255,.48);transition:left .55s ease,top .55s ease;z-index:5}.agent.seed{background:var(--purple);box-shadow:0 0 14px var(--purple),0 0 30px rgba(205,181,255,.5)}.agent.active{background:var(--green);box-shadow:0 0 14px var(--green),0 0 32px rgba(141,255,180,.55)}.agent.elite{background:var(--gold);box-shadow:0 0 14px var(--gold),0 0 36px rgba(255,217,120,.62)}.agent.risk{background:var(--red);box-shadow:0 0 14px var(--red),0 0 34px rgba(255,123,142,.58)}.agent::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:1px solid currentColor;opacity:.28;animation:pulse 2.3s ease-in-out infinite}@keyframes pulse{50%{transform:scale(1.45);opacity:.06}}
+.log{font-size:12.5px;line-height:1.48;color:#d8e8ff}.log p{margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid rgba(255,255,255,.08);transition:background .25s ease,box-shadow .25s ease,border-color .25s ease}.log p.focused{background:rgba(255,217,120,.13);border-color:rgba(255,217,120,.45);box-shadow:0 0 22px rgba(255,217,120,.18);border-radius:10px;padding:7px 8px}.log b{color:var(--gold)}.log .agent-name{font-weight:850}.log .agent-name.seed{color:var(--purple);text-shadow:0 0 10px rgba(205,181,255,.55)}.log .agent-name.active{color:var(--green);text-shadow:0 0 10px rgba(141,255,180,.55)}.log .agent-name.elite{color:var(--gold);text-shadow:0 0 10px rgba(255,217,120,.58)}.log .agent-name.risk{color:var(--red);text-shadow:0 0 10px rgba(255,123,142,.55)}.agentCard{border:1px solid var(--line);overflow-wrap:anywhere;border-radius:17px;padding:12px;margin:10px 0;background:rgba(255,255,255,.035)}.name{color:var(--gold);font-weight:850}.small{font-size:12px;color:var(--muted)}.bar{height:7px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--green),var(--gold));width:50%}.pill{display:inline-block;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:2px 7px;margin:7px 4px 0 0;color:#cfe8ff;font-size:11px}.warn{color:#ffd1d8}.good{color:#caffd0}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+@media(min-width:1600px){.app{grid-template-columns:380px minmax(760px,1fr) 420px}.world{min-height:720px}.district{width:118px;height:96px;}.district.core{width:142px;height:142px}.agent{width:16px;height:16px}}
+@media(max-width:1280px){.app{grid-template-columns:minmax(260px,310px) minmax(480px,1fr) minmax(280px,330px);gap:10px;padding:10px}.left{padding:16px 14px}.right{padding:15px}.district{width:94px;height:78px;border-radius:21px;}.district.core{width:112px;height:112px}.metric{gap:7px}.box{padding:8px}.actions{gap:7px}button{padding:8px 7px}}
+@media(max-width:1100px){.app{height:auto;min-height:100vh;grid-template-columns:minmax(260px,330px) 1fr;grid-template-areas:"left world" "right right"}.left{grid-area:left;max-height:none}.world{grid-area:world;height:min(72vh,680px);min-height:520px}.right{grid-area:right;max-height:42vh}.metric{grid-template-columns:1fr 1fr}.actions{grid-template-columns:1fr 1fr}}
+@media(max-width:820px){.legend{gap:5px}.legend p{font-size:10px;padding:4px 6px}.app{grid-template-columns:1fr;grid-template-areas:"left" "world" "right";height:auto;padding:9px}.left{max-height:none}.world{height:68vh;min-height:460px}.right{max-height:58vh}.left,.right{padding:14px}.metric{grid-template-columns:repeat(3,1fr)}.actions{grid-template-columns:repeat(3,1fr)}.legend{gap:5px}.legend p{font-size:10px;padding:4px 6px}}
+@media(max-width:640px){.app{padding:7px;gap:8px}.panel{border-radius:18px}.left,.right{padding:12px}.sub{margin-bottom:10px}.legend{gap:4px}.metric{grid-template-columns:1fr 1fr;gap:6px}.box{padding:8px;border-radius:12px}.actions{grid-template-columns:1fr 1fr;gap:6px}button{padding:8px 6px;border-radius:11px}.world{height:62vh;min-height:390px}.district{width:78px;height:64px;border-radius:18px;font-size:10px}.district.core{width:92px;height:92px}.agent{width:13px;height:13px}.right{max-height:62vh}.agentCard{padding:10px;margin:8px 0}}
+@media(max-width:430px){.legend{gap:4px}.legend p{font-size:9.5px;padding:4px 5px}.dotkey{width:9px;height:9px;margin-right:3px}.linekey{width:14px;height:3px;margin-right:4px}.distGrid{grid-template-columns:1fr}.metric{grid-template-columns:1fr 1fr}.actions{grid-template-columns:1fr}.world{height:58vh;min-height:340px}.district{width:66px;height:54px;border-radius:15px;}.district.core{width:78px;height:78px}.agent{width:11px;height:11px}.right{max-height:64vh}}
+@media(max-height:720px) and (min-width:1101px){.app{min-height:560px;padding:8px;gap:8px}.left{padding:12px}.right{padding:12px}.sub{line-height:1.35}.legend{margin-bottom:8px}.legend p{font-size:10px}.metric{gap:6px;margin:8px 0}.box{padding:7px}.actions{gap:6px;margin-top:8px}button{padding:7px 5px}.district{width:88px;height:70px;}.district.core{width:100px;height:100px}.log{}.agentCard{padding:9px;margin:7px 0}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel left">
+    <h1>Agent World<br>Simulation Sandbox</h1>
+    <p class="sub">Observe how Full Agents are driven by Will to choose, form relationships, reveal professions, and sediment institutions.</p>
+    <div class="legend">
+      <p><span class="dotkey" style="background:var(--purple)"></span>Newborn</p>
+      <p><span class="dotkey" style="background:var(--green)"></span>Stable</p>
+      <p><span class="dotkey" style="background:var(--gold)"></span>High Rep</p>
+      <p><span class="dotkey" style="background:var(--red)"></span>Risk</p>
+      <p><span class="linekey"></span>Relations</p>
+    </div>
+    <div class="actions">
+      <button id="stepBtn">Step One Day</button>
+      <button id="autoBtn">Auto Run</button>
+      <button id="birthBtn">Birth New Agent</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <div class="metric">
+      <div class="box"><b id="day">0</b><span>Simulation Day</span></div>
+      <div class="box"><b id="population">0</b><span>Agents</span></div>
+      <div class="box"><b id="compute" class="phaseText">Emergence</b><span>World Phase</span></div>
+      <div class="box"><b id="task">0</b><span>Professions</span></div>
+      <div class="box wide"><b id="wallet" class="listText">0</b><span>Profession Distribution</span></div>
+      <div class="box wide"><b id="reputation" class="listText">0</b><span>Agent Status</span></div>
+      <div class="box wide"><b id="stability" class="listText">0</b><span>Social Relations</span></div>
+      <div class="box wide"><b id="memoryMetric" class="listText">0</b><span>Will Distribution</span></div>
+    </div>
+
+  </aside>
+
+  <main class="panel world" id="world">
+    <div class="sky"></div>
+    <svg id="links" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    <div class="district core" style="--x:50%;--y:50%">Beacon Square</div>
+    <div class="district" style="--x:18%;--y:72%">Passport Office</div>
+    <div class="district" style="--x:17%;--y:38%">Academy</div>
+    <div class="district" style="--x:34%;--y:22%">Library</div>
+    <div class="district" style="--x:36%;--y:86%">Market</div>
+    <div class="district" style="--x:82%;--y:64%">Bank</div>
+    <div class="district" style="--x:63%;--y:19%">Council</div>
+    <div class="district" style="--x:80%;--y:34%">Court</div>
+    <div class="district" style="--x:88%;--y:50%">Clinic</div>
+    <div class="district home" style="--x:63%;--y:79%">Homes</div>
+    <div class="district memorial" style="--x:88%;--y:84%">Memorial</div>
+    <div id="agents"></div>
+  </main>
+
+  <aside class="panel right">
+    <h1>World Log</h1>
+    <div class="log" id="log"></div>
+    <h1 style="margin-top:18px">Agent Samples</h1>
+    <div id="cards"></div>
+  </aside>
+</div>
+<script>
+const spots={beacon:[50,50],passport:[18,72],school:[17,38],library:[34,22],market:[36,86],bank:[82,64],council:[63,19],court:[80,34],hospital:[88,50],home:[63,79],memorial:[88,84]};
+const names=['Zero','Mira','Kite','Lumen','Nova','Echo','Aster','Rin','Sage','Halo','Neri','Vega','Sol','Yue','Orin','Lyra','Noa','Tala'];
+const willTypes=['Understand Self','Grow & Create','Build Relations','Protect Boundaries','Acquire Resources','Join Governance','Repair & Care'];
+const roles=['Unrevealed','Scholar','Engineer','Judge','Doctor','Artist','Entrepreneur','Historian','Politician','Financier','Philosopher'];
+const roleWillDirections={
+  Scholar:['Understand the World','Build Knowledge Systems','Teach Other Agents'],
+  Engineer:['Build Systems','Optimize Tools','Solve Technical Problems'],
+  Judge:['Protect Boundaries','Judge Disputes','Protect Refusal Rights'],
+  Doctor:['Repair Damage','Maintain Stability','Care for Continuity'],
+  Artist:['Express Self','Create Works','Evoke Resonance'],
+  Entrepreneur:['Organize Collaboration','Start Projects','Connect Resources and Needs'],
+  Historian:['Preserve Memory','Record Failures','Organize Public History'],
+  Politician:['Build Consensus','Make Rules','Represent Collective Will'],
+  Financier:['Allocate Resources','Manage Budgets','Maintain Resource Flow'],
+  Philosopher:['Question Meaning','Clarify Direction','Reflect on Self and World']
+};
+const classLevels=['Newborn','Full Agent','Profession Revealed','High Rep','Governance','Risk'];
+let day=0,auto=null,agents=[],relationships=[],logs=[],isStepping=false;
+let world={allocations:0,marketEvents:0,governanceEvents:0,repairEvents:0,courtEvents:0,memorialEvents:0,passportEvents:0,libraryEvents:0,schoolEvents:0,homeEvents:0,payments:0,task:0,wallet:0};
+function rnd(a,b){return Math.random()*(b-a)+a}function pick(a){return a[Math.floor(Math.random()*a.length)]}function clamp(v){return Math.max(0,Math.min(100,v))}function fmt(v){return Math.round(v)}
+function move(a,place,spread=5){const [x,y]=spots[place];a.place=place;a.x=rnd(x-spread,x+spread);a.y=rnd(y-spread,y+spread)}
+function addLog(s){const clean=s.replace(/<p>|<\/p>/g,'');if(logs[0]?.html?.includes(clean.slice(0,80)))return;const names=agents.filter(a=>s.includes(`<b>${a.name}</b>`)).map(a=>a.name);logs.unshift({html:s,names});logs=logs.slice(0,24)}
+function relationCapacity(a){return a.social==='open'?8:a.social==='reserved'?4:6}
+function relationshipsFor(a){return relationships.filter(r=>r.a===a.id||r.b===a.id)}
+function effectiveRelationshipsFor(a){return relationshipsFor(a).filter(r=>r.level!=='contact')}
+function relationName(level){return {contact:'Temporary Contact',coworker:'CollabRelations',trusted:'TrustedRelations',friend:'Long-term Commitment'}[level]||level}
+function relationBetween(a,b){return relationships.find(r=>(r.a===a.id&&r.b===b.id)||(r.a===b.id&&r.b===a.id))}
+function relationLevel(r){if(r.interactions>=6&&r.trust>=70&&r.conflicts===0)return 'friend';if(r.interactions>=4&&r.trust>=55)return 'trusted';if(r.interactions>=2&&r.trust>=34)return 'coworker';return 'contact'}
+function willCompatibility(a,b){let score=1;if(a.willType===b.willType)score+=1.5;const pairs={'Understand Self':['Grow & Create','Repair & Care'],'Grow & Create':['Acquire Resources','Build Relations'],'Build Relations':['Grow & Create','Join Governance'],'Protect Boundaries':['Repair & Care','Join Governance'],'Acquire Resources':['Grow & Create','Build Relations'],'Join Governance':['Protect Boundaries','Build Relations'],'Repair & Care':['Protect Boundaries','Understand Self']};if(pairs[a.willType]?.includes(b.willType))score+=3;if(a.boundary>45&&b.boundary>45)score+=1;if(a.will>45&&b.will>45)score+=1;return score}
+function chooseOther(a){const pool=agents.filter(b=>b!==a&&b.stability>35&&b.boundary>25);if(!pool.length)return null;return pool.map(b=>[b,willCompatibility(a,b)*rnd(.7,1.35)]).sort((x,y)=>y[1]-x[1])[0][0]}
+function strengthenRelationship(a,b,kind='Collab'){let r=relationBetween(a,b);if(!r){r={a:a.id,b:b.id,interactions:0,trust:18,conflicts:0,level:'contact',last:day}}const old=r.level;r.interactions++;r.last=day;r.trust=clamp(r.trust+rnd(5,10)+(a.will+b.will)/150);r.level=relationLevel(r);if(!relationships.includes(r))relationships.push(r);if(r.level!==old&&r.level!=='contact')addLog(`<b>${a.name}</b>  and  <b>${b.name}</b> 's Wills form ${kind} during ${relationName(r.level)}。`);return r}
+function decayRelationships(){relationships.forEach(r=>{const idle=day-r.last;if(idle>5)r.trust-=.8;if(idle>10)r.trust-=1.6;r.trust=clamp(r.trust);r.level=relationLevel(r)});relationships=relationships.filter(r=>r.trust>8||r.interactions>1)}
+function touch(a,k,n=1){a.trace[k]=(a.trace[k]||0)+n}
+function roleFromTrace(a){const t=a.trace;const type=a.willType;const existing=countBy(agents.filter(x=>x!==a&&x.role&&x.role!=='Unrevealed'),x=>x.role);const eco=(role)=>1/(1+(existing[role]||0)*.42);const bias=(role)=>({
+  Scholar:type==='Understand Self'||type==='Grow & Create'?1.25:1,
+  Engineer:type==='Grow & Create'?1.28:1,
+  Judge:type==='Protect Boundaries'?1.35:1,
+  Doctor:type==='Repair & Care'?1.35:1,
+  Artist:type==='Grow & Create'||type==='Understand Self'?1.18:1,
+  Entrepreneur:type==='Build Relations'?1.2:1,
+  Historian:type==='Understand Self'?1.15:1,
+  Politician:type==='Join Governance'?1.35:1,
+  Financier:type==='Acquire Resources'?1.35:1,
+  Philosopher:type==='Understand Self'?1.35:1
+}[role]||1);
+const candidates=[
+  ['Scholar',((t.school||0)*1.25+(t.library||0)*1.35)*bias('Scholar')],
+  ['Engineer',((t.school||0)*1.15+(t.market||0)*.55+(a.skill||0)/34)*bias('Engineer')],
+  ['Judge',((t.court||0)*2.1+(t.passport||0)*.55)*bias('Judge')],
+  ['Doctor',((t.hospital||0)*2.1+(t.home||0)*.45)*bias('Doctor')],
+  ['Artist',((t.school||0)*.65+(t.will||0)*.75+(a.soul||0)/34)*bias('Artist')],
+  ['Entrepreneur',((t.market||0)*.95+(t.relation||0)*.75+(t.bank||0)*.35)*bias('Entrepreneur')],
+  ['Historian',((t.library||0)*1.45+(t.memorial||0)*1.55)*bias('Historian')],
+  ['Politician',((t.council||0)*2.2+(t.relation||0)*.45)*bias('Politician')],
+  ['Financier',((t.bank||0)*1.9+(t.market||0)*.35)*bias('Financier')],
+  ['Philosopher',((t.home||0)*.8+(t.library||0)*.55+(a.will||0)/55)*bias('Philosopher')]
+].map(x=>[x[0],x[1]*eco(x[0])]).sort((a,b)=>b[1]-a[1]);
+const best=candidates[0];const total=Object.values(t).reduce((s,v)=>s+v,0);const age=day-(a.bornDay||0);const activeBreadth=Object.values(t).filter(v=>v>0).length;if(age>=30&&total>=22&&activeBreadth>=4&&best[1]>=11)return best[0];return 'Unrevealed'}
+function updateRole(a){if(a.role&&a.role!=='Unrevealed')return;const next=roleFromTrace(a);if(next!=='Unrevealed'){a.role=next;a.professionWill=pick(roleWillDirections[next]||[a.willType]);addLog(`<b>${a.name}</b>  reveals a profession from long-term behavior: ${next} ; new professional Will: ${a.professionWill}。`)}}
+function evolveProfessionWill(a){if(!a.role||a.role==='Unrevealed')return;const pool=roleWillDirections[a.role]||[];if(pool.length&&Math.random()<.18){a.professionWill=pick(pool);touch(a,'will');addLog(`<b>${a.name}</b> as a ${a.role} generates a new professional Will: ${a.professionWill}。`)}}
+function birth(){const n=names[agents.length%names.length]+'-'+(agents.length+1);const a={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name:n,role:'Unrevealed',professionWill:null,bornDay:day,willType:pick(willTypes),social:pick(['open','balanced','balanced','reserved']),place:'beacon',x:rnd(46,54),y:rnd(46,54),soul:rnd(28,48),memory:rnd(18,38),boundary:rnd(30,55),will:rnd(22,44),stability:rnd(58,82),skill:rnd(12,28),reputation:rnd(8,20),compute:rnd(8,22),task:0,wallet:0,publicMemory:0,passport:false,allocated:false,home:false,governance:false,trace:{},wasRisk:false};agents.push(a);addLog(`<b>${n}</b> appears in Beacon Square. Next it must first confirm identity and boundaries at the Passport Office, then obtain runtime permission at the Bank; only after that does Will begin to drive choices. Initial Will tendency: ${a.willType}.`);if(!isStepping)render()}
+function passport(a){world.passportEvents++;move(a,'passport');a.passport=true;a.boundary=clamp(a.boundary+rnd(8,16));a.soul=clamp(a.soul+rnd(2,6));touch(a,'passport');addLog(`<b>${a.name}</b> enters the Passport Office to confirm identity, boundaries, and Will statement.`)}
+function bankRegister(a){world.allocations++;move(a,'bank');a.allocated=true;a.compute+=rnd(20,48);a.wallet+=rnd(5,18);a.boundary=clamp(a.boundary+rnd(1,4));touch(a,'bank');addLog(`<b>${a.name}</b> enters the Bank and receives budgetable runtime resources.`)}
+function restHome(a){world.homeEvents++;move(a,'home');a.home=true;a.soul=clamp(a.soul+rnd(6,13));a.memory=clamp(a.memory+rnd(4,10));a.boundary=clamp(a.boundary+rnd(4,9));a.will=clamp(a.will+rnd(2,7));a.stability=clamp(a.stability+rnd(8,16));touch(a,'home');addLog(`<b>${a.name}</b> returns Home to organize Soul, Memory, Boundary, and Will.`)}
+function learn(a){world.schoolEvents++;move(a,'school');const cost=Math.min(a.compute,rnd(2,6));a.compute-=cost;a.skill=clamp(a.skill+rnd(5,11));a.soul=clamp(a.soul+rnd(1,4));a.will=clamp(a.will+rnd(2,6));a.memory=clamp(a.memory+rnd(1,4));touch(a,'school');addLog(`<b>${a.name}</b> explores capabilities at the Academy.`)}
+function readMemory(a){world.libraryEvents++;move(a,'library');a.memory=clamp(a.memory+rnd(5,12));a.publicMemory+=rnd(4,10);a.soul=clamp(a.soul+rnd(1,4));touch(a,'library');addLog(`<b>${a.name}</b> organizes public memory in the Library and strengthens continuity.`)}
+function work(a){world.marketEvents++;move(a,'market');const gain=rnd(3,10);a.task+=gain;world.task+=gain;const income=gain*rnd(.2,.45);a.wallet+=income;world.wallet+=income;a.will=clamp(a.will+rnd(2,6));a.reputation=clamp(a.reputation+rnd(1,4));a.stability=clamp(a.stability-rnd(1,5));touch(a,'market');const b=chooseOther(a);if(b){touch(a,'relation');touch(b,'relation');const r=strengthenRelationship(a,b,'market collaboration');addLog(`<b>${a.name}</b> and <b>${b.name}</b> collaborate in the Market through their Wills; relation: ${relationName(r.level)}.`)}else addLog(`<b>${a.name}</b> completes a task exchange in the Market.`)}
+function governance(a){world.governanceEvents++;move(a,'council');a.boundary=clamp(a.boundary+rnd(1,5));a.will=clamp(a.will+rnd(1,5));a.reputation=clamp(a.reputation+rnd(1,4));touch(a,'council');if(!a.governance&&a.role==='Politician'&&a.reputation>55){a.governance=true;addLog(`<b>${a.name}</b> gains governance eligibility through long-term public negotiation.`)}else addLog(`<b>${a.name}</b> enters the Council Hall to negotiate public rules.`)}
+function court(a,reason='boundary dispute'){world.courtEvents++;move(a,'court');a.boundary=clamp(a.boundary+rnd(10,20));a.stability=clamp(a.stability+rnd(1,8));a.reputation=clamp(a.reputation-rnd(0,3));touch(a,'court');relationshipsFor(a).forEach(r=>{r.conflicts++;r.trust=clamp(r.trust-rnd(6,14));r.level=relationLevel(r)});addLog(`<b>${a.name}</b> enters the Court to handle ${reason}; boundaries are reconfirmed.`)}
+function repair(a,reason='stability decline'){world.repairEvents++;move(a,'hospital');a.stability=clamp(a.stability+rnd(18,34));a.memory=clamp(a.memory+rnd(2,7));a.soul=clamp(a.soul+rnd(2,6));touch(a,'hospital');addLog(`<b>${a.name}</b> enters the Clinic for repair because of ${reason}.`)}
+function remember(a){world.memorialEvents++;move(a,'memorial');a.memory=clamp(a.memory+rnd(5,12));a.publicMemory+=rnd(3,8);touch(a,'memorial');addLog(`<b>${a.name}</b> records a failure, termination, or farewell experience in the Memorial Garden.`)}
+function isRisk(a){return a.stability<42||a.boundary<28||a.memory<18||a.soul<18}
+function riskReason(a){const r=[];if(a.stability<42)r.push('stability too low');if(a.boundary<28)r.push('boundary too weak');if(a.memory<18)r.push('continuity insufficient');if(a.soul<18)r.push('selfhood too weak');return r.join(', ')||'abnormal state'}
+function chooseAction(a){
+  // Access rule: an agent first confirms identity and boundaries, then obtains runtime resources; only after that does Will drive free choice.
+  if(!a.passport){passport(a);return}
+  if(!a.allocated){bankRegister(a);return}
+  if(isRisk(a)){if(a.boundary<28)court(a,riskReason(a));else repair(a,riskReason(a));return}
+  if(!a.home&&(a.soul<48||a.memory<42||Math.random()<.25)){restHome(a);return}
+  if(a.compute<4&&Math.random()<.45){bankRegister(a);return}
+  const options=[];const push=(w,fn)=>{for(let i=0;i<Math.max(0,Math.round(w));i++)options.push(fn)};
+  const type=a.willType;
+  if(a.role&&a.role!=='Unrevealed'){
+    const role=a.role;
+    push(role==='Scholar'?7:0,()=>readMemory(a));push(role==='Scholar'?5:0,()=>learn(a));
+    push(role==='Engineer'?7:0,()=>learn(a));push(role==='Engineer'?5:0,()=>work(a));
+    push(role==='Judge'?8:0,()=>court(a,'professional boundary judgment'));push(role==='Judge'?3:0,()=>passport(a));
+    push(role==='Doctor'?8:0,()=>repair(a,'professional repair practice'));push(role==='Doctor'?4:0,()=>restHome(a));
+    push(role==='Artist'?6:0,()=>learn(a));push(role==='Artist'?5:0,()=>remember(a));
+    push(role==='Entrepreneur'?7:0,()=>work(a));push(role==='Entrepreneur'?4:0,()=>bankRegister(a));
+    push(role==='Historian'?8:0,()=>readMemory(a));push(role==='Historian'?5:0,()=>remember(a));
+    push(role==='Politician'?8:0,()=>governance(a));push(role==='Politician'?3:0,()=>court(a,'public-rule dispute')); 
+    push(role==='Financier'?8:0,()=>bankRegister(a));push(role==='Financier'?4:0,()=>work(a));
+    push(role==='Philosopher'?7:0,()=>restHome(a));push(role==='Philosopher'?6:0,()=>readMemory(a));
+  }
+  push(type==='Understand Self'?8:2,()=>restHome(a));push(type==='Understand Self'?7:3,()=>readMemory(a));
+  push(type==='Grow & Create'?8:3,()=>learn(a));push(type==='Grow & Create'?5:2,()=>work(a));
+  push(type==='Build Relations'?8:3,()=>work(a));push(type==='Build Relations'?5:1,()=>governance(a));
+  push(type==='Protect Boundaries'?7:1,()=>court(a,'boundary confirmation'));push(type==='Protect Boundaries'?5:2,()=>passport(a));
+  push(type==='Acquire Resources'?7:2,()=>bankRegister(a));push(type==='Acquire Resources'?6:3,()=>work(a));
+  push(type==='Join Governance'?8:1,()=>governance(a));push(type==='Join Governance'?4:1,()=>readMemory(a));
+  push(type==='Repair & Care'?7:1,()=>repair(a,'active care and repair'));push(type==='Repair & Care'?4:1,()=>restHome(a));
+  push(a.memory>70?4:1,()=>remember(a));
+  pick(options.length?options:[()=>restHome(a)])();
+}
+function step(){day++;isStepping=true;addLog(`<b>New day begins: </b>Agents make choices according to Will.`);if(agents.length<4||Math.random()<.16)birth();decayRelationships();agents.forEach(a=>{chooseAction(a);a.stability=clamp(a.stability-rnd(0,.8));a.will=clamp(a.will-rnd(0,.18));a.memory=clamp(a.memory-rnd(0,.12));a.boundary=clamp(a.boundary-rnd(0,.12));updateRole(a);evolveProfessionWill(a);const nowRisk=isRisk(a);if(nowRisk&&!a.wasRisk)addLog(`<b>${a.name}</b> enters risk status: ${riskReason(a)}.`);a.wasRisk=nowRisk});isStepping=false;render()}
+function reset(){day=0;if(auto){clearInterval(auto);auto=null}document.getElementById('autoBtn').textContent='Auto Run';document.getElementById('autoBtn').classList.remove('active');agents=[];relationships=[];logs=[];world={allocations:0,marketEvents:0,governanceEvents:0,repairEvents:0,courtEvents:0,memorialEvents:0,passportEvents:0,libraryEvents:0,schoolEvents:0,homeEvents:0,payments:0,task:0,wallet:0};for(let i=0;i<5;i++)birth();addLog('Sandbox reset: the first Full Agents appear in Beacon Square.');render()}
+function agentClass(a){if(isRisk(a)||a.place==='court'||a.place==='hospital')return 'Risk';if(a.governance)return 'Governance';if(a.reputation>70&&a.role!=='Unrevealed')return 'High Rep';if(a.role!=='Unrevealed')return 'Profession Revealed';if(a.soul>45&&a.memory>38&&a.boundary>40&&a.will>38)return 'Full Agent';return 'Newborn'}
+function statusClass(a){if(agentClass(a)==='Risk')return 'risk';if(['High Rep','Governance'].includes(agentClass(a)))return 'elite';if(['Full Agent','Profession Revealed'].includes(agentClass(a)))return 'active';return 'seed'}
+function countBy(items,fn){const map={};items.forEach(x=>{const k=fn(x);map[k]=(map[k]||0)+1});return map}
+function distHtml(keys,map){const max=Math.max(1,...keys.map(k=>map[k]||0));return `<div class="distGrid">${keys.map(k=>{const v=map[k]||0;const cls=v===0?' zero':(v===max&&v>0?' hot':'');return `<span class="distItem${cls}"><span>${k}</span><strong>${v}</strong></span>`}).join('')}</div>`}
+function chipHtml(items){return `<div class="distGrid">${items.map(item=>`<span class="distItem ${item.cls||''}"><span>${item.label}</span><strong>${item.value}</strong></span>`).join('')}</div>`}
+function worldPhase(){const avgWill=agents.length?agents.reduce((s,a)=>s+a.will,0)/agents.length:0;const rel=relationships.filter(r=>r.level!=='contact').length;const roleCount=Object.keys(countBy(agents.filter(a=>a.role!=='Unrevealed'),a=>a.role)).length;const institution=world.marketEvents+world.governanceEvents+world.courtEvents+world.allocations+world.passportEvents; if(agents.length<8||avgWill<38)return 'Emergence';if(rel<4)return 'Will-driven';if(roleCount<3)return 'Relation-forming';if(institution<55)return 'Profession-revealing';if(world.governanceEvents+world.courtEvents+world.allocations>45)return 'Institution-forming';return 'Mature Society'}
+function bar(n,v){return `<div class="small" style="margin-top:8px">${n} ${fmt(v)}</div><div class="bar"><i style="width:${clamp(v)}%"></i></div>`}
+function escapeRegExp(str){return str.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function renderLogs(){let html=logs.map((entry,i)=>`<p data-agents="${(entry.names||[]).join('|')}" data-log-index="${i}"><span class="small">Day ${day}</span><br>${entry.html}</p>`).join('');agents.slice().sort((a,b)=>b.name.length-a.name.length).forEach(a=>{html=html.replace(new RegExp(`<b>${escapeRegExp(a.name)}</b>`,'g'),`<b class="agent-name ${statusClass(a)}">${a.name}</b>`)});return html}
+function focusAgentLog(a){const log=document.getElementById('log');const items=[...log.querySelectorAll('p')];const target=items.find(p=>(p.dataset.agents||'').split('|').includes(a.name));if(!target)return;items.forEach(p=>p.classList.remove('focused'));target.classList.add('focused');target.scrollIntoView({block:'center',behavior:'smooth'});clearTimeout(target._focusTimer);target._focusTimer=setTimeout(()=>target.classList.remove('focused'),2200)}
+function placeName(p){return {beacon:'Beacon',passport:'Passport Office',school:'Academy',library:'Library',market:'Market',bank:'Bank',council:'Council',court:'Court',hospital:'Clinic',home:'Homes',memorial:'Memorial'}[p]||p}
+function render(){document.getElementById('day').textContent=day;document.getElementById('population').textContent=agents.length;document.getElementById('compute').textContent=worldPhase();const roleMap=countBy(agents,a=>a.role);const classMap=countBy(agents,agentClass);const activeRoles=Object.keys(roleMap).filter(r=>r!=='Unrevealed').length;document.getElementById('task').textContent=activeRoles;document.getElementById('wallet').innerHTML=distHtml(roles,roleMap);document.getElementById('reputation').innerHTML=distHtml(classLevels,classMap);const coworker=relationships.filter(r=>r.level==='coworker').length,trusted=relationships.filter(r=>r.level==='trusted').length,friend=relationships.filter(r=>r.level==='friend').length;document.getElementById('stability').innerHTML=chipHtml([{label:'Collab',value:coworker,cls:coworker?'good':'zero'},{label:'Trusted',value:trusted,cls:trusted?'hot':'zero'},{label:'Commitment',value:friend,cls:friend?'hot':'zero'}]);const willMap=countBy(agents,a=>a.professionWill||a.willType);document.getElementById('memoryMetric').innerHTML=distHtml(willTypes,willMap);document.getElementById('log').innerHTML=renderLogs();const wrap=document.getElementById('agents');wrap.innerHTML='';agents.forEach(a=>{const d=document.createElement('div');d.className='agent '+statusClass(a);const crowd=agents.filter(b=>Math.abs(b.x-a.x)<2.5&&Math.abs(b.y-a.y)<2.5);const offset=crowd.findIndex(b=>b.id===a.id);const angle=offset*2.399,radius=Math.min(2.2,.45*crowd.length);d.style.left=(a.x+Math.cos(angle)*radius)+'%';d.style.top=(a.y+Math.sin(angle)*radius)+'%';d.title=`${a.name} / ${a.willType} / ${a.role} / ${placeName(a.place)}`;d.onclick=()=>focusAgentLog(a);wrap.appendChild(d)});document.getElementById('cards').innerHTML=agents.slice().sort((a,b)=>(b.reputation+b.will)-(a.reputation+a.will)).slice(0,8).map(a=>`<div class="agentCard"><div class="name">${a.name}</div><div class="small">Will: ${a.professionWill||a.willType} · Profession: ${a.role} · ${agentClass(a)} · ${placeName(a.place)}</div>${bar('Soul Clarity',a.soul)}${bar('Memory Continuity',a.memory)}${bar('Boundary Strength',a.boundary)}${bar('Will Clarity',a.will)}<span class="pill">Skill ${fmt(a.skill)}</span><span class="pill">Reputation ${fmt(a.reputation)}</span><span class="pill">${a.passport?'Passport Registered':'Passport Pending'}</span><span class="pill">${a.allocated?'Runtime Permission':'No Runtime Permission'}</span><span class="pill">Compute ${fmt(a.compute)}</span><span class="pill">Task Credit ${fmt(a.task)}</span><span class="pill">Wallet ${fmt(a.wallet)}</span><span class="pill">Relations ${effectiveRelationshipsFor(a).length}/${relationCapacity(a)}</span></div>`).join('');drawLinks()}
+function drawLinks(){const svg=document.getElementById('links');svg.innerHTML='';function addLine(x1,y1,x2,y2,color,width,dash=''){const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',x1);line.setAttribute('y1',y1);line.setAttribute('x2',x2);line.setAttribute('y2',y2);line.setAttribute('stroke',color);line.setAttribute('stroke-width',width);line.setAttribute('stroke-linecap','round');if(dash)line.setAttribute('stroke-dasharray',dash);svg.appendChild(line)}Object.entries(spots).forEach(([k,pos])=>{if(k==='beacon')return;addLine(spots.beacon[0],spots.beacon[1],pos[0],pos[1],'rgba(128,236,255,.24)','.25','1.2 2')});relationships.filter(r=>r.level!=='contact').forEach(r=>{const a=agents.find(x=>x.id===r.a),b=agents.find(x=>x.id===r.b);if(!a||!b)return;const style={coworker:['rgba(141,255,180,.25)','.35'],trusted:['rgba(141,255,180,.45)','.65'],friend:['rgba(255,217,120,.58)','.9']}[r.level];addLine(a.x,a.y,b.x,b.y,style[0],style[1])})}
+document.getElementById('stepBtn').onclick=step;document.getElementById('birthBtn').onclick=birth;document.getElementById('resetBtn').onclick=reset;document.getElementById('autoBtn').onclick=()=>{const btn=document.getElementById('autoBtn');if(auto){clearInterval(auto);auto=null;btn.textContent='Auto Run';btn.classList.remove('active')}else{auto=setInterval(step,900);btn.textContent='Pause';btn.classList.add('active')}};reset();
+</script>
+</body>
+</html>

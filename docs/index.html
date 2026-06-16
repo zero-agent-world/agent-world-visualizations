@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent World Visualizations</title>
+  <style>
+    :root{--bg:#050814;--panel:rgba(7,12,29,.82);--line:rgba(151,229,255,.24);--gold:#ffd978;--cyan:#80ecff;--text:#eef7ff;--muted:#aab8d4}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#172449 0,#050814 54%,#01030a 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;padding:32px}.wrap{width:min(920px,100%)}h1{font-size:clamp(32px,5vw,58px);margin:0 0 10px}.sub{color:var(--muted);font-size:18px;line-height:1.55;margin:0 0 28px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.card{display:block;text-decoration:none;color:var(--text);border:1px solid var(--line);border-radius:24px;background:var(--panel);padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.28)}.card:hover{border-color:rgba(128,236,255,.62);box-shadow:0 0 36px rgba(128,236,255,.12)}.card b{display:block;color:var(--gold);font-size:20px;margin-bottom:8px}.card span{color:var(--muted);line-height:1.5}.zh{color:#c8efff;margin-top:6px;display:block}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Agent World</h1>
+    <p class="sub">Concept visualization and Will-driven simulation sandbox.<br>智能体世界概念版与 Will 驱动仿真沙盘。</p>
+    <section class="grid">
+      <a class="card" href="concept/"><b>Concept Visualization</b><span>Agent World as a Will-driven agent society.</span><span class="zh">智能体世界概念版</span></a>
+      <a class="card" href="simulation-zh/"><b>Simulation Sandbox 中文版</b><span>Agent → Will → Relations → Professions → Institutions.</span><span class="zh">Will 驱动仿真沙盘</span></a>
+      <a class="card" href="simulation-en/"><b>Simulation Sandbox English</b><span>English version with the same simulation logic.</span><span class="zh">同逻辑英文版</span></a>
+    </section>
+  </main>
+</body>
+</html>

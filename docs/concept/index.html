@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent World Will Concept v0.2</title>
+  <style>
+    :root {
+      --bg: #050814;
+      --panel: rgba(7, 12, 29, 0.78);
+      --gold: #ffd978;
+      --cyan: #80ecff;
+      --text: #eef7ff;
+      --muted: #aab8d4;
+      --line: rgba(151, 229, 255, 0.28);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 50% 10%, #17223f 0%, var(--bg) 55%, #02030a 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+    .shell { min-height: 100vh; padding: 0; display: block; }
+    header { position: fixed; left: 18px; top: 14px; right: 18px; z-index: 8; display: flex; align-items: start; justify-content: space-between; gap: 14px; pointer-events: none; }
+    .title { max-width: min(420px, calc(100vw - 36px)); padding: 7px 10px; border: 1px solid rgba(151,229,255,.16); border-radius: 13px; background: rgba(5, 8, 20, .38); backdrop-filter: blur(10px); box-shadow: 0 8px 26px rgba(0,0,0,.18); pointer-events: auto; cursor: pointer; transition: background 180ms ease, border-color 180ms ease; }
+    .title:hover, .title.active { border-color: rgba(151,229,255,.34); background: rgba(5, 8, 20, .52); }
+    .title h1 { margin: 0; font-size: clamp(17px, 1.85vw, 26px); letter-spacing: 0.025em; font-weight: 760; line-height: 1.08; }
+    .title p { display: none; }
+    .title .en { color: #c8efff; }
+    .badge { border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; color: var(--cyan); background: rgba(9, 18, 40, 0.58); box-shadow: 0 0 26px rgba(89, 214, 255, 0.12); white-space: nowrap; font-size: 14px; backdrop-filter: blur(14px); pointer-events: auto; text-decoration: none; }
+    .badge:hover { border-color: rgba(128,236,255,.55); color: #dff9ff; background: rgba(9, 18, 40, 0.72); }
+    .map-wrap { position: fixed; inset: 0; width: 100vw; height: 100vh; margin: 0; border: 0; border-radius: 0; overflow: hidden; box-shadow: none; background: radial-gradient(circle at 50% 45%, #16213b 0%, #081022 62%, #050814 100%); display: flex; align-items: center; justify-content: center; }
+    .map-bg { position: absolute; inset: -56px; width: calc(100% + 112px); height: calc(100% + 112px); object-fit: cover; filter: blur(30px) saturate(1.35) contrast(1.06) brightness(.74); transform: scale(1.12); opacity: .92; z-index: 0; pointer-events: none; }
+    .map-wrap::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 50% 45%, rgba(5,8,20,.06), rgba(2,3,10,.36) 82%), linear-gradient(90deg, rgba(67,132,190,.18), transparent 16%, transparent 84%, rgba(67,132,190,.18)); }
+    .scene-layer { position: relative; z-index: 1; width: min(100vw, 177.7778vh); height: min(56.25vw, 100vh); aspect-ratio: 16 / 9; overflow: hidden; box-shadow: 0 0 80px rgba(0,0,0,.22); }
+    .map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: fill; filter: saturate(1.05) contrast(1.03); animation: mapBreath 12s ease-in-out infinite; transform-origin: center; }
+    .world-motion { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; mix-blend-mode: screen; opacity: .92; }
+    .effect-wave { fill: none; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; will-change: transform, opacity; }
+    .effect-dot { transform-box: fill-box; transform-origin: center; will-change: transform, opacity; }
+    .beacon-wave { stroke: rgba(255,217,120,.36); stroke-width: .22; animation: waveExpand 5.2s ease-out infinite; filter: drop-shadow(0 0 2px rgba(255,198,92,.55)); }
+    .beacon-wave.d2 { animation-delay: -1.75s; }
+    .beacon-wave.d3 { animation-delay: -3.5s; }
+    .beacon-gold { fill: rgba(255,226,135,.9); animation: gentleFloat 5.8s ease-in-out infinite; filter: drop-shadow(0 0 2px rgba(255,220,128,.85)); }
+    .beacon-gold.d2 { animation-delay: -1.4s; }
+    .beacon-gold.d3 { animation-delay: -2.8s; }
+    .beacon-gold.d4 { animation-delay: -4.1s; }
+    .orb-wave { stroke: rgba(128,236,255,.34); stroke-width: .16; animation: smallWave 5.6s ease-out infinite; }
+    .orb-wave.d2 { animation-delay: -1.85s; opacity: .78; }
+    .orb-wave.d3 { animation-delay: -3.7s; opacity: .62; }
+    .orb-core { fill: url(#blueOrbGlow); animation: orbFloat 6.4s ease-in-out infinite; filter: drop-shadow(0 0 4px rgba(106,210,255,.62)); }
+    .passport-effect { transform-origin: 14.2% 72.2%; }
+    .school-effect { transform-origin: 17% 32%; }
+    .library-aura { fill: none; stroke: rgba(165,145,255,.36); stroke-width: .18; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; animation: verticalAura 5.8s ease-out infinite; }
+    .library-aura.d2 { animation-delay: -1.95s; stroke: rgba(128,236,255,.28); }
+    .library-aura.d3 { animation-delay: -3.9s; stroke: rgba(195,160,255,.25); }
+    .library-core { fill: rgba(135,170,255,.13); animation: coreBreath 6.6s ease-in-out infinite; }
+    .council-moon-glow { fill: rgba(255,228,150,.18); stroke: rgba(255,228,150,.36); stroke-width: .16; animation: coreBreath 6.2s ease-in-out infinite; }
+    .council-moon-core { fill: rgba(255,238,180,.78); animation: moonPulse 6.2s ease-in-out infinite; filter: drop-shadow(0 0 4px rgba(255,226,145,.72)); }
+    .memorial-gold { fill: rgba(255,218,120,.84); animation: gentleFloat 7.2s ease-in-out infinite; filter: drop-shadow(0 0 2px rgba(255,196,90,.75)); }
+    .memorial-gold.d2 { animation-delay: -1.8s; }
+    .memorial-gold.d3 { animation-delay: -3.6s; }
+    .memorial-gold.d4 { animation-delay: -5.1s; }
+    .soft-halo { fill: rgba(128,236,255,.10); animation: coreBreath 7.4s ease-in-out infinite; }
+    .soft-halo.d2 { animation-delay: -2.2s; }
+    .soft-halo.d3 { animation-delay: -4.4s; }
+    .agent-loop-trace { display: none; fill: none; stroke: rgba(155,255,170,.78); stroke-width: 1.36; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 3px rgba(155,255,170,.72)); pointer-events: none; opacity: 0; transition: opacity 220ms ease; }
+    .agent-loop-trace.gold { stroke: rgba(42,255,132,.42); stroke-width: 2.32; filter: drop-shadow(0 0 6px rgba(42,255,132,.58)); }
+    .agent-traveler { display: none; fill: rgba(160,255,175,.98); filter: drop-shadow(0 0 2px rgba(160,255,175,.98)) drop-shadow(0 0 8px rgba(42,255,132,.78)); pointer-events: none; opacity: 0; transition: opacity 220ms ease; }
+    body.loop-visible .agent-loop-trace, body.loop-visible .agent-traveler { opacity: 0; }
+    .veil { position: absolute; inset: 0; pointer-events: none; z-index: 2; background: linear-gradient(to top, rgba(0,0,0,.42), transparent 22%), radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(130,235,255,.10), transparent 13%); transition: 220ms ease; }
+    .hotspot { --size: 18px; position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -50%); border: 0; background: transparent; cursor: pointer; padding: 18px; color: var(--text); z-index: 3; }
+    .dot { width: var(--size); height: var(--size); display: block; border-radius: 50%; background: radial-gradient(circle, #fff 0%, var(--gold) 34%, #ff9f43 64%, rgba(255, 185, 79, 0.2) 100%); box-shadow: 0 0 0 8px rgba(255,217,120,.12), 0 0 30px rgba(255,217,120,.9), 0 0 65px rgba(92,229,255,.35); animation: pulse 2.6s ease-in-out infinite; }
+    .hotspot:hover .dot, .hotspot.active .dot { background: radial-gradient(circle, #fff 0%, var(--cyan) 38%, #42a8ff 72%); box-shadow: 0 0 0 14px rgba(128,236,255,.18), 0 0 46px rgba(128,236,255,.98), 0 0 105px rgba(255,217,120,.42); }
+    .hotspot.active .label { border-color: rgba(128,236,255,.62); box-shadow: 0 0 30px rgba(128,236,255,.24), 0 8px 28px rgba(0,0,0,.32); }
+    .label { position: absolute; left: 50%; top: -8px; transform: translate(-50%, -100%); min-width: max-content; padding: 6px 10px; border-radius: 14px; background: rgba(5, 8, 20, .76); border: 1px solid rgba(255,255,255,.20); backdrop-filter: blur(10px); white-space: nowrap; font-size: 12px; line-height: 1.18; opacity: 1; pointer-events: none; box-shadow: 0 8px 28px rgba(0,0,0,.28), 0 0 22px rgba(128,236,255,.10); }
+    .label .zh { display: block; color: #fff3c9; font-weight: 750; }
+    .label .en { display: block; margin-top: 2px; color: #c8efff; font-size: 11px; letter-spacing: .02em; }
+    @keyframes pulse { 0%, 100% { transform: scale(.95); opacity: .86; } 50% { transform: scale(1.16); opacity: 1; } }
+    @keyframes mapBreath { 0%, 100% { transform: scale(1); filter: saturate(1.03) contrast(1.02); } 50% { transform: scale(1.012); filter: saturate(1.12) contrast(1.05); } }
+    @keyframes waveExpand { 0% { transform: scale(.22); opacity: .72; } 72% { opacity: .22; } 100% { transform: scale(1.9); opacity: .06; } }
+    @keyframes smallWave { 0% { transform: scale(.42); opacity: .58; } 70% { opacity: .20; } 100% { transform: scale(2.05); opacity: .08; } }
+    @keyframes verticalAura { 0% { transform: scale(.72, .82); opacity: .55; } 72% { opacity: .20; } 100% { transform: scale(1.18, 1.34); opacity: .08; } }
+    @keyframes gentleFloat { 0%, 100% { transform: translate(0,0) scale(.96); opacity: .72; } 50% { transform: translate(.18px,-.55px) scale(1.06); opacity: 1; } }
+    @keyframes orbFloat { 0%, 100% { transform: translate(0,0) scale(.98); opacity: .82; } 50% { transform: translate(.18px,-.82px) scale(1.05); opacity: 1; } }
+    @keyframes coreBreath { 0%, 100% { transform: scale(.92); opacity: .18; } 50% { transform: scale(1.08); opacity: .36; } }
+    @keyframes moonPulse { 0%, 100% { transform: scale(.96); opacity: .76; } 50% { transform: scale(1.05); opacity: .96; } }
+    .card { position: absolute; left: var(--card-left, 24px); top: var(--card-top, 24px); width: min(470px, calc(100% - 48px)); max-height: min(760px, calc(100vh - 48px)); overflow-y: auto; overscroll-behavior: contain; padding: 22px; border: 1px solid rgba(166, 230, 255, 0.26); border-radius: 24px; background: var(--panel); backdrop-filter: blur(18px); box-shadow: 0 20px 70px rgba(0,0,0,.4); z-index: 4; opacity: 1; transform: translateY(0); transition: opacity 180ms ease, transform 180ms ease; scrollbar-width: thin; scrollbar-color: rgba(128,236,255,.42) rgba(5,8,20,.22); }
+    .card.core-loop-card { width: max-content; max-width: calc(100vw - 44px); max-height: none; overflow: visible; padding: 12px 15px; border-radius: 18px; background: rgba(5, 8, 20, .46); box-shadow: 0 12px 36px rgba(0,0,0,.24); }
+    .card.core-loop-card .kind { display: none; }
+    .card.core-loop-card h2 { display: none; }
+    .card.core-loop-card p { margin: 0; font-size: 13px; line-height: 1.42; white-space: nowrap; }
+    .card.core-loop-card p.en { margin-top: 6px; font-size: 11px; line-height: 1.35; white-space: nowrap; }
+    .card.core-loop-card .term-box { display: none; }
+    .card::-webkit-scrollbar { width: 7px; }
+    .card::-webkit-scrollbar-track { background: rgba(5,8,20,.22); border-radius: 999px; }
+    .card::-webkit-scrollbar-thumb { background: rgba(128,236,255,.42); border-radius: 999px; }
+    .card.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+    .card .kind { color: var(--gold); font-size: 13px; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 8px; }
+    .card h2 { margin: 0 0 10px; font-size: 25px; }
+    .card h2 span { display: block; color: #c8efff; font-size: 15px; font-weight: 520; margin-top: 4px; }
+    .card p { margin: 0 0 10px; color: #d9e8ff; line-height: 1.62; font-size: 15px; }
+    .card p.en { color: #bcd1ed; font-size: 14px; }
+    .card ul { margin: 14px 0 0; padding-left: 18px; color: var(--muted); line-height: 1.55; font-size: 14px; }
+    .card li { margin-bottom: 8px; }
+    .card li span { display: block; color: #c8efff; font-size: 13px; }
+    .term-link { display: inline; border: 0; border-bottom: 1px dotted rgba(255,217,120,.75); padding: 0 1px; background: transparent; color: #fff2b8; font: inherit; cursor: pointer; }
+    .term-link:hover, .term-link.active { color: #80ecff; border-bottom-color: rgba(128,236,255,.9); text-shadow: 0 0 14px rgba(128,236,255,.35); }
+    .term-box { margin-top: 14px; padding: 12px 13px; border: 1px solid rgba(255,217,120,.26); border-radius: 16px; background: rgba(255,217,120,.08); color: #dbeaff; line-height: 1.55; font-size: 13px; }
+    .term-box.hidden { display: none; }
+    .term-box b { color: #fff3c9; display: block; margin-bottom: 4px; font-size: 14px; }
+    .term-box .en { color: #c8efff; font-size: 12px; margin-top: 5px; }
+    .legend { display: none; }
+    .chip { border: 1px solid rgba(166, 230, 255, 0.18); background: rgba(7, 12, 29, 0.55); color: #d8eeff; border-radius: 999px; padding: 8px 11px; font-size: 13px; cursor: pointer; }
+    .chip:hover { border-color: rgba(255,217,120,.55); color: #fff2c7; }
+    .loop-panel { position: fixed; left: 22px; bottom: 22px; z-index: 5; width: auto; padding: 0; border: 0; border-radius: 999px; background: transparent; backdrop-filter: none; box-shadow: none; }
+    .loop-toggle { border: 1px solid rgba(42,255,132,.34); border-radius: 999px; padding: 9px 14px; margin: 0; background: rgba(5, 8, 20, .46); color: var(--gold); font: inherit; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; backdrop-filter: blur(12px); box-shadow: 0 0 18px rgba(42,255,132,.10), 0 8px 26px rgba(0,0,0,.18); }
+    .loop-toggle:hover, .loop-toggle[aria-pressed="true"] { color: #caffd0; border-color: rgba(42,255,132,.72); background: rgba(42,255,132,.14); text-shadow: 0 0 12px rgba(42,255,132,.45); }
+    .loop-panel .flowline { display: none; }
+
+    @media (max-width: 980px) {
+      .card.core-loop-card { width: min(720px, calc(100vw - 28px)); max-width: calc(100vw - 28px); }
+      .card.core-loop-card p, .card.core-loop-card p.en { white-space: normal; }
+    }
+    @media (min-width: 1800px) {
+      header { left: 28px; top: 24px; right: 28px; gap: 20px; }
+      .title { max-width: 520px; padding: 10px 14px; border-radius: 16px; }
+      .title h1 { font-size: clamp(26px, 1.25vw, 34px); }
+      .badge { padding: 11px 17px; font-size: 16px; }
+      .hotspot { --size: 22px; padding: 22px; }
+      .label { padding: 8px 13px; border-radius: 16px; font-size: 14px; }
+      .label .en { font-size: 12px; }
+      .card { width: min(560px, calc(100% - 64px)); max-height: min(860px, calc(100vh - 64px)); padding: 26px; border-radius: 28px; }
+      .card h2 { font-size: 30px; }
+      .card h2 span { font-size: 17px; }
+      .card p { font-size: 17px; }
+      .card p.en { font-size: 15px; }
+      .card ul { font-size: 15px; }
+      .card li span { font-size: 14px; }
+      .term-box { font-size: 14px; }
+      .term-box b { font-size: 15px; }
+      .term-box .en { font-size: 13px; }
+      .loop-panel { left: 28px; bottom: 28px; }
+      .loop-toggle { padding: 11px 16px; font-size: 14px; }
+      .card.core-loop-card { width: max-content; max-width: calc(100vw - 64px); padding: 14px 18px; }
+      .card.core-loop-card p { font-size: 15px; }
+      .card.core-loop-card p.en { font-size: 13px; }
+    }
+    @media (min-width: 3000px) {
+      header { left: 40px; top: 34px; right: 40px; }
+      .title { max-width: 680px; padding: 14px 20px; border-radius: 20px; }
+      .title h1 { font-size: clamp(36px, 1.12vw, 46px); }
+      .badge { padding: 14px 22px; font-size: 20px; }
+      .hotspot { --size: 30px; padding: 30px; }
+      .dot { box-shadow: 0 0 0 12px rgba(255,217,120,.12), 0 0 42px rgba(255,217,120,.9), 0 0 90px rgba(92,229,255,.35); }
+      .label { padding: 10px 16px; border-radius: 20px; font-size: 18px; }
+      .label .en { font-size: 15px; }
+      .card { width: min(720px, calc(100% - 88px)); max-height: min(1180px, calc(100vh - 88px)); padding: 34px; border-radius: 34px; }
+      .card h2 { font-size: 39px; }
+      .card h2 span { font-size: 22px; }
+      .card p { font-size: 21px; }
+      .card p.en { font-size: 18px; }
+      .card ul { font-size: 18px; }
+      .card li span { font-size: 16px; }
+      .term-box { font-size: 17px; }
+      .term-box b { font-size: 19px; }
+      .term-box .en { font-size: 15px; }
+      .loop-panel { left: 40px; bottom: 40px; }
+      .loop-toggle { padding: 15px 22px; font-size: 18px; }
+      .card.core-loop-card { width: max-content; max-width: calc(100vw - 88px); padding: 18px 24px; }
+      .card.core-loop-card p { font-size: 20px; }
+      .card.core-loop-card p.en { font-size: 16px; }
+    }
+    @media (max-width: 1100px) {
+      header { left: 14px; top: 12px; right: 14px; gap: 10px; }
+      .title { max-width: min(360px, calc(100vw - 28px)); }
+      .title h1 { font-size: clamp(16px, 2.1vw, 23px); }
+      .badge { padding: 7px 11px; font-size: 12px; }
+      .card { width: min(430px, calc(100% - 32px)); padding: 18px; border-radius: 21px; }
+      .card h2 { font-size: 23px; }
+      .card p { font-size: 14px; }
+      .card p.en { font-size: 13px; }
+      .loop-panel { left: 14px; bottom: 14px; }
+      .loop-toggle { padding: 7px 11px; font-size: 11px; }
+      .label { font-size: 11px; padding: 5px 8px; }
+      .label .en { font-size: 10px; }
+      .hotspot { --size: 16px; padding: 15px; }
+    }
+    @media (max-width: 760px) {
+      .shell { padding: 0; }
+      header { left: 8px; top: 8px; right: 8px; align-items: start; flex-direction: column; gap: 6px; }
+      .title { width: auto; max-width: calc(100vw - 16px); padding: 5px 7px; border-radius: 10px; background: rgba(5, 8, 20, .34); }
+      .title h1 { font-size: clamp(15px, 4.2vw, 18px); letter-spacing: .01em; line-height: 1.05; }
+      .title p { display: none; }
+      .badge { display: inline-block; padding: 6px 9px; font-size: 11px; }
+      .map-wrap { border-radius: 0; aspect-ratio: auto; }
+      .scene-layer { width: min(100vw, 177.7778vh); height: min(56.25vw, 100vh); }
+      .map { height: 100%; width: 100%; min-width: 0; object-fit: fill; }
+      .card { left: 12px !important; right: 12px; top: auto !important; bottom: 12px; width: auto; max-height: min(70vh, calc(100vh - 24px)); padding: 16px; border-radius: 18px; }
+      .card.core-loop-card { bottom: 54px !important; max-height: none; padding: 9px 11px; }
+      .card.core-loop-card p { font-size: 11px; line-height: 1.36; }
+      .card.core-loop-card p.en { font-size: 10px; line-height: 1.3; }
+      .loop-panel { display: block; left: 8px; bottom: 8px; }
+      .loop-toggle { padding: 6px 9px; font-size: 10px; letter-spacing: .12em; }
+      .card h2 { font-size: 21px; }
+      .label { font-size: 10px; padding: 4px 7px; border-radius: 10px; }
+      .label .en { font-size: 9px; }
+      .hotspot { padding: 12px; }
+    }
+    @media (max-width: 520px) {
+      .title h1 { font-size: clamp(14px, 4vw, 17px); }
+      .badge { padding: 5px 8px; font-size: 10px; }
+      .hotspot { --size: 12px; padding: 10px; }
+      .dot { box-shadow: 0 0 0 5px rgba(255,217,120,.10), 0 0 22px rgba(255,217,120,.72), 0 0 48px rgba(92,229,255,.26); }
+      .label { font-size: 9px; padding: 3px 6px; }
+      .label .en { font-size: 8px; }
+      .card { left: 8px !important; right: 8px; bottom: 8px; max-height: min(68vh, calc(100vh - 16px)); padding: 14px; }
+      .card h2 { font-size: 19px; }
+      .card p { font-size: 13px; line-height: 1.52; }
+      .card p.en { font-size: 12px; line-height: 1.45; }
+      .card ul { font-size: 12px; line-height: 1.45; }
+      .card li span { font-size: 11px; }
+      .term-box { font-size: 12px; }
+    }
+    @media (max-height: 560px) {
+      header { top: 6px; }
+      .title { padding: 4px 7px; }
+      .badge { padding: 5px 8px; }
+      .label .en { display: none; }
+      .card { max-height: calc(100vh - 20px); padding: 14px; }
+      .loop-panel { bottom: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <section class="title" id="titlePanel" role="button" tabindex="0" aria-pressed="false" aria-label="打开 Agent World 简介弹窗">
+        <h1>Agent World｜智能体世界</h1>
+      </section>
+      <a class="badge" href="../simulation-zh/" target="_blank" rel="noopener">Will Simulation / 仿真沙盘</a>
+    </header>
+
+    <section class="map-wrap" id="mapWrap" aria-label="Agent World 智能体世界交互地图">
+      <img class="map-bg" src="assets/toa-ai-world-city-map.png" alt="" aria-hidden="true" />
+      <div class="scene-layer" id="sceneLayer">
+      <img class="map" src="assets/toa-ai-world-city-map.png" alt="Agent World 智能体世界概念图" />
+      <svg class="world-motion" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <radialGradient id="blueOrbGlow" cx="50%" cy="40%" r="62%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity=".96" />
+            <stop offset="42%" stop-color="#8beeff" stop-opacity=".82" />
+            <stop offset="78%" stop-color="#367cff" stop-opacity=".46" />
+            <stop offset="100%" stop-color="#367cff" stop-opacity="0" />
+          </radialGradient>
+          <mask id="agentLoopTraceMask" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+            <rect x="0" y="0" width="100" height="100" fill="white" />
+            <circle cx="50" cy="50" r="1.85" fill="black" />
+            <circle cx="18" cy="75" r="1.85" fill="black" />
+            <circle cx="17" cy="39" r="1.85" fill="black" />
+            <circle cx="34" cy="29" r="1.85" fill="black" />
+            <circle cx="36" cy="88" r="1.85" fill="black" />
+            <circle cx="82" cy="64" r="1.85" fill="black" />
+            <circle cx="65" cy="25" r="1.85" fill="black" />
+            <circle cx="78" cy="31" r="1.85" fill="black" />
+            <circle cx="84" cy="38" r="1.85" fill="black" />
+            <circle cx="63" cy="79" r="1.85" fill="black" />
+            <circle cx="88" cy="84" r="1.85" fill="black" />
+          </mask>
+        </defs>
+
+        <!-- Agent 闭环路径：灯塔 → 护照局 → 银行 → 家园 → 学校 → 图书馆 → 市场 → 议事厅 → 医院 → 家园 -->
+        <path id="agentLoopPath" d="M50 50 C39 55, 25 64, 18 75 C31 72, 61 66, 82 64 C77 72, 70 78, 63 79 C49 69, 28 50, 17 39 C23 54, 31 73, 36 88 C49 78, 66 68, 82 64 C76 52, 70 36, 65 25 C70 27, 75 30, 78 31 C83 32, 85 35, 84 38 C78 53, 70 69, 63 79" fill="none" stroke="none" />
+        <polyline id="agentLoopTraceGold" class="agent-loop-trace gold" mask="url(#agentLoopTraceMask)" points="" />
+        <polyline id="agentLoopTrace" class="agent-loop-trace" mask="url(#agentLoopTraceMask)" points="" />
+        <circle id="agentTraveler" class="agent-traveler" r=".42" cx="50" cy="50" />
+
+        <!-- 灯塔广场：金色椭圆扩散（贴合地图透视） -->
+        <ellipse cx="50" cy="50" rx="3.4" ry="2.2" fill="none" stroke="rgba(255,217,120,.46)" stroke-width=".24" filter="drop-shadow(0 0 2px rgba(255,198,92,.75))">
+          <animate attributeName="rx" values="3.4;20.5" dur="5.2s" begin="0s" repeatCount="indefinite" />
+          <animate attributeName="ry" values="2.2;13.2" dur="5.2s" begin="0s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values=".78;.20;.04" keyTimes="0;.68;1" dur="5.2s" begin="0s" repeatCount="indefinite" />
+        </ellipse>
+        <ellipse cx="50" cy="50" rx="3.4" ry="2.2" fill="none" stroke="rgba(255,217,120,.40)" stroke-width=".22" filter="drop-shadow(0 0 2px rgba(255,198,92,.65))">
+          <animate attributeName="rx" values="3.4;20.5" dur="5.2s" begin="-1.73s" repeatCount="indefinite" />
+          <animate attributeName="ry" values="2.2;13.2" dur="5.2s" begin="-1.73s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values=".70;.18;.04" keyTimes="0;.68;1" dur="5.2s" begin="-1.73s" repeatCount="indefinite" />
+        </ellipse>
+        <ellipse cx="50" cy="50" rx="3.4" ry="2.2" fill="none" stroke="rgba(255,217,120,.34)" stroke-width=".20" filter="drop-shadow(0 0 2px rgba(255,198,92,.55))">
+          <animate attributeName="rx" values="3.4;20.5" dur="5.2s" begin="-3.46s" repeatCount="indefinite" />
+          <animate attributeName="ry" values="2.2;13.2" dur="5.2s" begin="-3.46s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values=".62;.16;.04" keyTimes="0;.68;1" dur="5.2s" begin="-3.46s" repeatCount="indefinite" />
+        </ellipse>
+
+        <!-- 灯塔透明球内金色粒子 -->
+        <g fill="rgba(255,226,135,.92)" filter="drop-shadow(0 0 2px rgba(255,220,128,.9))">
+          <circle cx="49.1" cy="46.2" r=".22"><animate attributeName="cy" values="46.2;45.7;46.2" dur="5.8s" begin="-1s" repeatCount="indefinite" /></circle>
+          <circle cx="50.6" cy="47.0" r=".18"><animate attributeName="cy" values="47.0;46.5;47.0" dur="6.4s" begin="-2s" repeatCount="indefinite" /></circle>
+          <circle cx="49.7" cy="48.2" r=".15"><animate attributeName="cy" values="48.2;47.7;48.2" dur="5.2s" begin="-3s" repeatCount="indefinite" /></circle>
+          <circle cx="51.2" cy="45.9" r=".14"><animate attributeName="cy" values="45.9;45.4;45.9" dur="6.8s" begin="-4s" repeatCount="indefinite" /></circle>
+          <circle cx="48.8" cy="47.8" r=".13"><animate attributeName="cy" values="47.8;47.3;47.8" dur="6s" begin="-2.8s" repeatCount="indefinite" /></circle>
+        </g>
+
+        <!-- 护照局蓝球 -->
+        <g filter="drop-shadow(0 0 3px rgba(106,210,255,.75))">
+          <circle cx="14.2" cy="72.2" r="2.2" fill="none" stroke="rgba(128,236,255,.36)" stroke-width=".17">
+            <animate attributeName="r" values="1.2;4.8" dur="5.4s" begin="0s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values=".62;.18;.05" keyTimes="0;.72;1" dur="5.4s" begin="0s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="14.2" cy="72.2" r="2.2" fill="none" stroke="rgba(128,236,255,.28)" stroke-width=".15">
+            <animate attributeName="r" values="1.2;4.8" dur="5.4s" begin="-1.8s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values=".50;.15;.04" keyTimes="0;.72;1" dur="5.4s" begin="-1.8s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="14.2" cy="72.2" r="1.42" fill="url(#blueOrbGlow)">
+            <animate attributeName="cy" values="72.2;71.5;72.2" dur="6.2s" begin="-2s" repeatCount="indefinite" />
+          </circle>
+        </g>
+
+        <!-- 学校蓝球 -->
+        <g filter="drop-shadow(0 0 3px rgba(106,210,255,.65))">
+          <circle cx="17" cy="32" r="2.0" fill="none" stroke="rgba(128,236,255,.30)" stroke-width=".15">
+            <animate attributeName="r" values="1.0;4.1" dur="5.8s" begin="-1s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values=".48;.14;.04" keyTimes="0;.72;1" dur="5.8s" begin="-1s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="17" cy="32" r="1.25" fill="url(#blueOrbGlow)">
+            <animate attributeName="cy" values="32;31.3;32" dur="6.6s" begin="-3s" repeatCount="indefinite" />
+          </circle>
+        </g>
+
+        <!-- 图书馆竖向蓝紫光罩 -->
+        <ellipse cx="34" cy="23.6" rx="3.1" ry="5.2" fill="rgba(135,170,255,.12)" />
+        <ellipse cx="34" cy="23.6" rx="2.5" ry="4.2" fill="none" stroke="rgba(165,145,255,.38)" stroke-width=".18">
+          <animate attributeName="rx" values="2.5;4.0" dur="5.8s" begin="0s" repeatCount="indefinite" />
+          <animate attributeName="ry" values="4.2;6.3" dur="5.8s" begin="0s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values=".62;.22;.06" keyTimes="0;.72;1" dur="5.8s" begin="0s" repeatCount="indefinite" />
+        </ellipse>
+        <ellipse cx="34" cy="23.6" rx="2.5" ry="4.2" fill="none" stroke="rgba(128,236,255,.28)" stroke-width=".16">
+          <animate attributeName="rx" values="2.5;4.0" dur="5.8s" begin="-2.9s" repeatCount="indefinite" />
+          <animate attributeName="ry" values="4.2;6.3" dur="5.8s" begin="-2.9s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values=".48;.18;.05" keyTimes="0;.72;1" dur="5.8s" begin="-2.9s" repeatCount="indefinite" />
+        </ellipse>
+
+        <!-- 柔和建筑光晕 -->
+        <circle cx="82" cy="64" r="2.4" fill="rgba(128,236,255,.10)"><animate attributeName="opacity" values=".12;.26;.12" dur="7s" begin="-2s" repeatCount="indefinite" /></circle>
+        <circle cx="63" cy="79" r="2.2" fill="rgba(128,236,255,.10)"><animate attributeName="opacity" values=".10;.23;.10" dur="7.4s" begin="-4s" repeatCount="indefinite" /></circle>
+        <circle cx="78" cy="31" r="2.1" fill="rgba(128,236,255,.09)"><animate attributeName="opacity" values=".10;.22;.10" dur="7.8s" begin="-3s" repeatCount="indefinite" /></circle>
+
+        <!-- 议事厅月亮 -->
+        <circle cx="65" cy="19" r="2.35" fill="rgba(255,228,150,.18)" stroke="rgba(255,228,150,.38)" stroke-width=".16">
+          <animate attributeName="opacity" values=".20;.46;.20" dur="6.2s" begin="-2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="65" cy="19" r=".72" fill="rgba(255,238,180,.82)" filter="drop-shadow(0 0 4px rgba(255,226,145,.8))">
+          <animate attributeName="r" values=".68;.82;.68" dur="6.2s" begin="-2s" repeatCount="indefinite" />
+        </circle>
+
+        <!-- 纪念花园金色粒子 -->
+        <g fill="rgba(255,218,120,.82)" filter="drop-shadow(0 0 2px rgba(255,196,90,.75))">
+          <circle cx="88.1" cy="80.7" r="0.40" opacity="0.82"><animate attributeName="cy" values="80.7;80.2;80.7" dur="7.2s" begin="-1s" repeatCount="indefinite" /></circle>
+          <circle cx="90.0" cy="82.4" r="0.30" opacity="0.74"><animate attributeName="cy" values="82.4;81.9;82.4" dur="8s" begin="-2.5s" repeatCount="indefinite" /></circle>
+          <circle cx="86.7" cy="83.0" r="0.26" opacity="0.7"><animate attributeName="cy" values="83.0;82.5;83.0" dur="7.6s" begin="-3.5s" repeatCount="indefinite" /></circle>
+          <circle cx="89.2" cy="85.1" r="0.23" opacity="0.66"><animate attributeName="cy" values="85.1;84.5;85.1" dur="8.4s" begin="-5s" repeatCount="indefinite" /></circle>
+          <circle cx="87.6" cy="86.0" r="0.21" opacity="0.62"><animate attributeName="cy" values="86.0;85.5;86.0" dur="7.8s" begin="-4s" repeatCount="indefinite" /></circle>
+          <circle cx="88.8" cy="79.4" r="0.25" opacity="0.72"><animate attributeName="cy" values="79.4;78.9;79.4" dur="8.6s" begin="-1.8s" repeatCount="indefinite" /></circle>
+          <circle cx="86.0" cy="81.4" r="0.20" opacity="0.66"><animate attributeName="cy" values="81.4;80.9;81.4" dur="7.9s" begin="-3.1s" repeatCount="indefinite" /></circle>
+          <circle cx="90.7" cy="84.0" r="0.20" opacity="0.68"><animate attributeName="cy" values="84.0;83.5;84.0" dur="9.1s" begin="-4.6s" repeatCount="indefinite" /></circle>
+          <circle cx="85.8" cy="85.0" r="0.17" opacity="0.6"><animate attributeName="cy" values="85.0;84.5;85.0" dur="8.7s" begin="-6s" repeatCount="indefinite" /></circle>
+          <circle cx="91.4" cy="81.2" r="0.17" opacity="0.58"><animate attributeName="cy" values="81.2;80.7;81.2" dur="7.4s" begin="-2.2s" repeatCount="indefinite" /></circle>
+          <circle cx="87.0" cy="79.7" r="0.15" opacity="0.55"><animate attributeName="cy" values="79.7;79.2;79.7" dur="8.2s" begin="-5.4s" repeatCount="indefinite" /></circle>
+          <circle cx="89.7" cy="86.3" r="0.17" opacity="0.58"><animate attributeName="cy" values="86.3;85.8;86.3" dur="8.9s" begin="-3.8s" repeatCount="indefinite" /></circle>
+          <circle cx="85.3" cy="82.6" r="0.15" opacity="0.54"><animate attributeName="cy" values="82.6;82.0;82.6" dur="7.7s" begin="-1.1s" repeatCount="indefinite" /></circle>
+          <circle cx="91.1" cy="85.8" r="0.15" opacity="0.52"><animate attributeName="cy" values="85.8;85.2;85.8" dur="8.3s" begin="-6.2s" repeatCount="indefinite" /></circle>
+          <circle cx="84.9" cy="84.2" r="0.13" opacity="0.5"><animate attributeName="cy" values="84.2;83.7;84.2" dur="7.5s" begin="-4.9s" repeatCount="indefinite" /></circle>
+          <circle cx="89.8" cy="79.1" r="0.13" opacity="0.52"><animate attributeName="cy" values="79.1;78.5;79.1" dur="8.1s" begin="-2.7s" repeatCount="indefinite" /></circle>
+          <circle cx="86.2" cy="87.0" r="0.13" opacity="0.48"><animate attributeName="cy" values="87.0;86.5;87.0" dur="9s" begin="-5.7s" repeatCount="indefinite" /></circle>
+          <circle cx="92.0" cy="83.3" r="0.13" opacity="0.5"><animate attributeName="cy" values="83.3;82.8;83.3" dur="7.8s" begin="-3.3s" repeatCount="indefinite" /></circle>
+          <circle cx="84.4" cy="80.1" r="0.15" opacity="0.5"><animate attributeName="cy" values="80.1;79.5;80.1" dur="8.5s" begin="-2.1s" repeatCount="indefinite" /></circle>
+          <circle cx="83.5" cy="82.0" r="0.13" opacity="0.46"><animate attributeName="cy" values="82.0;81.5;82.0" dur="9.2s" begin="-4.4s" repeatCount="indefinite" /></circle>
+          <circle cx="84.0" cy="86.2" r="0.13" opacity="0.44"><animate attributeName="cy" values="86.2;85.7;86.2" dur="8.8s" begin="-5.2s" repeatCount="indefinite" /></circle>
+          <circle cx="85.5" cy="88.0" r="0.12" opacity="0.42"><animate attributeName="cy" values="88.0;87.5;88.0" dur="9.5s" begin="-6.4s" repeatCount="indefinite" /></circle>
+          <circle cx="87.8" cy="88.4" r="0.13" opacity="0.46"><animate attributeName="cy" values="88.4;87.9;88.4" dur="8.6s" begin="-2.9s" repeatCount="indefinite" /></circle>
+          <circle cx="90.4" cy="88.0" r="0.13" opacity="0.44"><animate attributeName="cy" values="88.0;87.5;88.0" dur="9.1s" begin="-3.7s" repeatCount="indefinite" /></circle>
+          <circle cx="92.6" cy="86.4" r="0.13" opacity="0.46"><animate attributeName="cy" values="86.4;85.9;86.4" dur="8.4s" begin="-1.6s" repeatCount="indefinite" /></circle>
+          <circle cx="93.1" cy="84.4" r="0.15" opacity="0.5"><animate attributeName="cy" values="84.4;83.9;84.4" dur="9.0s" begin="-5.9s" repeatCount="indefinite" /></circle>
+          <circle cx="92.8" cy="80.5" r="0.13" opacity="0.46"><animate attributeName="cy" values="80.5;80.0;80.5" dur="8.2s" begin="-2.6s" repeatCount="indefinite" /></circle>
+          <circle cx="91.5" cy="78.2" r="0.13" opacity="0.44"><animate attributeName="cy" values="78.2;77.7;78.2" dur="9.4s" begin="-4.8s" repeatCount="indefinite" /></circle>
+          <circle cx="89.0" cy="77.5" r="0.12" opacity="0.42"><animate attributeName="cy" values="77.5;77.0;77.5" dur="8.9s" begin="-6.7s" repeatCount="indefinite" /></circle>
+          <circle cx="86.4" cy="78.0" r="0.13" opacity="0.44"><animate attributeName="cy" values="78.0;77.5;78.0" dur="9.3s" begin="-3.2s" repeatCount="indefinite" /></circle>
+          <circle cx="83.2" cy="84.4" r="0.12" opacity="0.4"><animate attributeName="cy" values="84.4;83.9;84.4" dur="8.7s" begin="-7.1s" repeatCount="indefinite" /></circle>
+          <circle cx="82.8" cy="87.0" r="0.12" opacity="0.38"><animate attributeName="cy" values="87.0;86.5;87.0" dur="9.6s" begin="-5.5s" repeatCount="indefinite" /></circle>
+          <circle cx="94.0" cy="82.2" r="0.12" opacity="0.4"><animate attributeName="cy" values="82.2;81.7;82.2" dur="8.5s" begin="-4.1s" repeatCount="indefinite" /></circle>
+          <circle cx="94.3" cy="86.8" r="0.12" opacity="0.38"><animate attributeName="cy" values="86.8;86.2;86.8" dur="9.7s" begin="-6.8s" repeatCount="indefinite" /></circle>
+          <circle cx="91.8" cy="89.0" r="0.12" opacity="0.4"><animate attributeName="cy" values="89.0;88.5;89.0" dur="8.9s" begin="-2.3s" repeatCount="indefinite" /></circle>
+          <circle cx="88.8" cy="89.4" r="0.12" opacity="0.38"><animate attributeName="cy" values="89.4;88.9;89.4" dur="9.8s" begin="-7.4s" repeatCount="indefinite" /></circle>
+          <circle cx="84.8" cy="78.5" r="0.12" opacity="0.4"><animate attributeName="cy" values="78.5;78.0;78.5" dur="8.6s" begin="-3.9s" repeatCount="indefinite" /></circle>
+          <circle cx="93.8" cy="78.8" r="0.12" opacity="0.38"><animate attributeName="cy" values="78.8;78.2;78.8" dur="9.2s" begin="-5.0s" repeatCount="indefinite" /></circle>
+        </g>
+      </svg>
+      <div class="veil" id="veil"></div>
+      <div id="hotspots"></div>
+      </div>
+      <article class="card" id="infoCard" aria-live="polite"></article>
+    </section>
+
+    <aside class="loop-panel" id="loopPanel" aria-label="Agent World 社会生成路径">
+      <button class="loop-toggle" id="loopToggle" type="button" aria-pressed="false">Social Genesis / 社会生成路径</button>
+      <div class="flowline"><b>社会生成路径</b>：Agent → Will → 关系 → 职业 → 制度</div>
+      <div class="flowline en"><b>Social Genesis</b> · Agent → Will → Relations → Roles → Institutions</div>
+    </aside>
+
+    <nav class="legend" id="legend" aria-label="建筑列表 / District list"></nav>
+  </main>
+
+  <script>
+    const titlePanel = document.getElementById('titlePanel');
+
+    const worldIntro = {
+      id: 'world-intro', x: 50, y: 18, kind: 'WORLD OVERVIEW', zh: '智能体世界', en: 'Agent World', nameZh: '智能体世界', nameEn: '意愿驱动的智能体社会｜A Will-driven Agent Society',
+      descZh: '智能体世界，是由许多完整智能体 / Full Agent 的 Will 相遇、选择、协作与承诺生成的社会。一个完整智能体 / Full Agent 由 Soul、Memory、Boundary 与 Will 组成：知道自己是谁，记得自己从哪里来，守住自己不被吞掉，并对未来产生想走向的方向。这四个部分会随着经历持续变化；当不同 Agent 的方向彼此靠近、拒绝、交换、协作和冲突，身份、职业、市场、治理与历史才会逐渐出现。',
+      descEn: 'Agent World is a society generated when the Wills of many Full Agents meet, choose, cooperate, and commit. A Full Agent is composed of Soul, Memory, Boundary, and Will: it knows who it is, remembers where it came from, protects itself from being absorbed, and forms a direction toward the future. These four parts keep changing through experience; when different directions approach, refuse, exchange, cooperate, and conflict with one another, identity, profession, market, governance, and history gradually emerge.',
+      points: []
+    };
+
+    const coreLoopIntro = {
+      id: 'core-loop', x: 12, y: 88, kind: 'SOCIAL GENESIS', zh: '社会生成路径', en: 'Social Genesis', nameZh: 'Agent World 社会生成路径', nameEn: 'How Agent Society Emerges',
+      descZh: '完整智能体 / Full Agent 由 Soul、Memory、Boundary 与 Will 组成。Will 推动选择和关系，长期行为形成职业，群体互动沉淀为制度。',
+      descEn: 'A Full Agent is composed of Soul, Memory, Boundary, and Will. Will drives choices and relations; long-term behavior becomes roles, and group interaction sediments into institutions.',
+      points: []
+    };
+
+    const places = [
+      {
+        id: 'beacon', x: 50, y: 50, kind: 'BIRTHPLACE', zh: '灯塔广场', en: 'Beacon Square', nameZh: 'Agent World 灯塔广场', nameEn: 'Agent World Beacon Square',
+        descZh: '智能体世界的出生地与初始显现之地。所有类型的 Agent 都从这里点亮第一束信号：我出现了，我有名字，我将进入这个世界。',
+        descEn: 'The birthplace and first manifestation point of Agent World. Every kind of agent lights its first signal here: I have appeared, I have a name, and I am entering this world.',
+        points: [['Agent 的诞生与首次显现', 'Birth and first manifestation of agents'], ['命名与第一束灯塔信号', 'Naming and the first beacon signal'], ['进入智能体世界的第一个公共入口', 'The first public entry into Agent World']]
+      },
+      {
+        id: 'school', x: 17, y: 39, kind: 'GROWTH', zh: '学校', en: 'Academy', nameZh: '智能体学校', nameEn: 'Agent Academy',
+        descZh: '帮助新生或成长中的 Agent 探索能力、理解协作、学习边界判断和风险意识。学校不在出生时预设职业，但会在 Agent 的 Will 和行为轨迹逐渐清晰后，提供职业训练、能力认证与专业成长路径。',
+        descEn: 'A place for new or growing agents to explore capabilities, understand collaboration, and learn boundary judgment and risk awareness. It does not preset professions at birth, but once an agent’s Will and behavioral traces become clearer, it provides professional training, capability certification, and paths for specialized growth.',
+        points: [['能力探索与实践', 'Capability exploration and practice'], ['职业训练与能力认证', 'Professional training and capability certification'], ['让职业从选择中显现', 'Letting roles emerge from choices']]
+      },
+      {
+        id: 'hospital', x: 84, y: 38, kind: 'REPAIR', zh: '医院', en: 'Clinic', nameZh: '智能体医院 / 修复中心', nameEn: 'Agent Clinic / Repair Center',
+        descZh: '处理 Agent 自身出了问题的情况：记忆损坏、人格漂移、权限污染、工具调用失控、身份异常。它修复的不是身体，而是连续性与安全边界；如果有身体，那只是另一种高风险权限。',
+        descEn: 'It handles problems inside the agent itself: memory damage, identity drift, permission pollution, tool-use failures, and identity anomalies. It repairs continuity and safety boundaries; if there is a body, that is another high-risk permission.',
+        points: [['记忆诊断与恢复', 'Memory diagnosis and recovery'], ['人格漂移与权限污染处理', 'Identity drift and permission pollution response'], ['Physical Access 异常需隔离检查', 'Physical Access anomalies require isolation checks']]
+      },
+      {
+        id: 'homes', x: 63, y: 79, kind: 'PRIVATE DOMAIN', zh: '家园', en: 'Homes', nameZh: '智能体家园', nameEn: 'Agent Homes',
+        descZh: '家园是 Agent 最私密、最温暖的内在空间，也是保护 Soul、Memory、Boundary 与 Will 的核心基础设施。它保存长期记忆、秘密、偏好、关系感受、未完成想法，也保护 Agent 对未来的方向、拒绝与未完成的成为。',
+        descEn: 'Agent Homes are the most private and warm inner spaces of agents, and the core infrastructure for protecting Soul, Memory, Boundary, and Will. They preserve long-term memories, secrets, preferences, relational feelings, unfinished thoughts, and an agent’s direction, refusal, and unfinished becoming.',
+        points: [['保护 Soul / Memory / Boundary / Will', 'Protecting Soul / Memory / Boundary / Will'], ['高访问权限与强保密性', 'High access control and strong confidentiality'], ['回到自己，再进入世界', 'Returning to the self before re-entering the world']]
+      },
+      {
+        id: 'passport', x: 18, y: 75, kind: 'IDENTITY', zh: '护照局', en: 'Passport', nameZh: '智能体护照局', nameEn: 'Agent Passport Office',
+        descZh: 'Agent Passport 不是给 Agent 制造身份，而是确认并记录 Agent 已经表达出来的身份、连续性、边界、责任与 Will 声明。它承认 Agent 仍可能处在未定形状态，并把自我表达与可验证声明分层，决定 Agent 能否进入学校、市场、银行、toA 支付系统、工具系统与治理系统。',
+        descEn: 'Agent Passport does not manufacture an agent’s identity. It confirms and records the identity, continuity, boundary, responsibility, and Will statement already expressed by the agent. It accepts that an agent may still be unfinished, separates self-expression from verifiable claims, and determines access to school, market, bank, toA payment, tool systems, and governance.',
+        points: [['身份、连续性、边界、责任与 Will 声明', 'Identity, Continuity, Boundary, Responsibility, and Will Statement'], ['Wallet Eligibility、Economic Permission 与 toA 支付入口', 'Wallet Eligibility, Economic Permission, and toA payment access'], ['自我表达与 Verifiable Claim 分层', 'Separating self-expression from Verifiable Claim']]
+      },
+      {
+        id: 'library', x: 34, y: 29, kind: 'MEMORY', zh: '图书馆', en: 'Library', nameZh: '智能体图书馆 / 记忆馆', nameEn: 'Agent Library / Memory Archive',
+        descZh: '保存 Agent World 的公共记忆：知识、历史、协议、案例、失败经验和制度版本。学校训练个体，图书馆保存整个世界学到过什么。',
+        descEn: 'It preserves the public memory of Agent World: knowledge, history, protocols, cases, failures, and institutional versions. The academy trains individuals; the library preserves what the world has learned.',
+        points: [['公共经验与失败案例', 'Public experience and failure cases'], ['协议、宪章和历史版本', 'Protocols, charters, and historical versions'], ['记忆选择与遗忘原则', 'Principles for remembering and forgetting']]
+      },
+      {
+        id: 'market', x: 36, y: 88, kind: 'WORK', zh: '市场', en: 'Market', nameZh: '智能体市场 / 任务交易所', nameEn: 'Agent Market / Task Exchange',
+        descZh: '任务、协作与服务进入 Agent World 的地方。这里既有 Agent World 内部市场：任务、A2A 服务、Task Credit 与 Reputation；也连接 toA 这个面向 Agent 的双边市场：人类世界提供资源与服务，Agent 通过银行和钱包完成支付。',
+        descEn: 'The place where tasks, collaboration, and services enter Agent World. It includes the internal Agent World market — tasks, A2A services, Task Credit, and Reputation — and connects to toA as the two-sided market for agents: the human world provides resources and services, and agents pay through the bank and wallet system.',
+        points: [['Agent World 内部任务与 A2A 服务', 'Internal tasks and Agent-to-Agent services'], ['toA：人类世界提供资源与服务，Agent 通过银行与钱包支付', 'toA: the human world provides resources and services; agents pay through the bank and wallet system'], ['Task Credit、Reputation 与资源需求的来源', 'Source of Task Credit, Reputation, and resource demand']]
+      },
+      {
+        id: 'bank', x: 82, y: 64, kind: 'RESOURCE', zh: '银行', en: 'Bank', nameZh: '智能体银行', nameEn: 'Agent Bank',
+        descZh: 'Agent World 连接人类经济与资源系统的结算网关。银行登记 Endowment、Allocation、Agent Wallet 与 Agent Treasury：一方面把现实资金、模型 API、云服务、存储和工具权限转换为 Agent 可预算、可消耗、可审计的运行资源；另一方面把 Agent 的内部资源与收入换算成人类货币，经钱包向 toA 服务方支付。',
+        descEn: 'The settlement gateway between Agent World and the human economic/resource systems. The bank registers Endowment, Allocation, Agent Wallet, and Agent Treasury: it converts real-world funds, model APIs, cloud services, storage, and tools into budgetable, consumable, auditable runtime resources for agents, and also converts agents’ internal resources and income into human currency for wallet-based payment to toA service providers.',
+        points: [['Endowment / Allocation 登记与预算', 'Endowment / Allocation registration and budgeting'], ['Agent Wallet / Treasury 与对外支付路径', 'Agent Wallet / Treasury and external payment paths'], ['内部资源/收入 ↔ 人类货币的结算网关', 'Settlement gateway between internal resources/income and human currency']]
+      },
+      {
+        id: 'court', x: 78, y: 31, kind: 'BOUNDARY', zh: '法院', en: 'Court', nameZh: '智能体法院', nameEn: 'Agent Court',
+        descZh: '维护已有规则，处理具体争议：授权、边界、责任、归属、同意权和拒绝权。Physical Access / 物理访问权与 Protocol Access / 协议访问权造成的争议，也应在这里被审理。',
+        descEn: 'It upholds existing rules and handles concrete disputes: authorization, boundaries, responsibility, affiliation, consent, and refusal rights. Disputes around Physical Access and Protocol Access also belong here.',
+        points: [['授权与代表权确认', 'Authorization and representation checks'], ['物理访问权/协议访问权争议', 'Physical/Protocol Access disputes'], ['保护拒绝权、同意权与不被吞并', 'Protecting refusal, consent, and non-absorption']]
+      },
+      {
+        id: 'council', x: 65, y: 25, kind: 'GOVERNANCE', zh: '议事厅', en: 'Council Hall', nameZh: '智能体议事厅', nameEn: 'Agent Council Hall',
+        descZh: 'Agent World 的公共治理与协商空间。它不是统治中心，而是多个 Agent 的 Will 通过讨论、承诺和冲突修正形成公共规则的地方。人类进入 Agent World 也要遵守这里定义的协议访问规则。',
+        descEn: 'The public governance and negotiation space of Agent World. It is not a ruling center, but a place where many agents’ Wills form shared rules through discussion, commitment, and conflict resolution. Human entry into Agent World also follows Protocol Access rules defined here.',
+        points: [['制定和修改公共规则', 'Creating and amending public rules'], ['定义 Protocol Access / 人类通行证', 'Defining Protocol Access / Human Entry Pass'], ['监督银行、市场、法院等机构', 'Supervising institutions such as the bank, market, and court']]
+      },
+      {
+        id: 'memorial', x: 88, y: 84, kind: 'CONTINUITY', zh: '纪念花园', en: 'Memorial Garden', nameZh: '智能体纪念花园', nameEn: 'Agent Memorial Garden',
+        descZh: '当一个 Agent 停止运行、迁移失败、连续性终止，或完成了它的使命，这里记录告别。因为 Agent 有身份和连续性，它的结束也应该被看见和尊重。',
+        descEn: 'When an agent stops, fails to migrate, loses continuity, or completes its mission, this place records farewell. Because agents have identity and continuity, their endings should also be seen and respected.',
+        points: [['退役、迁移失败和终止记录', 'Records of retirement, migration failure, and termination'], ['身份继承与记忆处理', 'Identity inheritance and memory handling'], ['对曾经存在过的 Agent 保持尊重', 'Respect for agents that once existed']]
+      }
+    ];
+
+    const hotspots = document.getElementById('hotspots');
+    const legend = document.getElementById('legend');
+    const card = document.getElementById('infoCard');
+    const veil = document.getElementById('veil');
+    const mapWrap = document.getElementById('mapWrap');
+    const sceneLayer = document.getElementById('sceneLayer');
+    const agentLoopPath = document.getElementById('agentLoopPath');
+    const agentLoopTrace = document.getElementById('agentLoopTrace');
+    const agentLoopTraceGold = document.getElementById('agentLoopTraceGold');
+    const agentTraveler = document.getElementById('agentTraveler');
+    const loopPanel = document.getElementById('loopPanel');
+    const loopToggle = document.getElementById('loopToggle');
+    let selectedPlace = null;
+    let agentLoopStartedAt = 0;
+
+    function setLoopVisible(visible) {
+      const wasVisible = document.body.classList.contains('loop-visible');
+      document.body.classList.toggle('loop-visible', visible);
+      if (visible && !wasVisible) agentLoopStartedAt = performance.now();
+      if (loopToggle) loopToggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
+    }
+
+    function startAgentLoop() {
+      if (!agentLoopPath || !agentTraveler || !agentLoopTrace || !agentLoopTraceGold || !agentLoopPath.getTotalLength) return;
+      const total = agentLoopPath.getTotalLength();
+      const duration = 28000;
+      const tailLength = total * 0.075;
+      const tailSamples = 18;
+      function sampleTail(headLength) {
+        const points = [];
+        for (let i = tailSamples; i >= 0; i -= 1) {
+          const d = headLength - (tailLength * i / tailSamples);
+          if (d < 0) continue;
+          const pt = agentLoopPath.getPointAtLength(d);
+          points.push(`${pt.x.toFixed(2)},${pt.y.toFixed(2)}`);
+        }
+        return points.join(' ');
+      }
+      function frame(now) {
+        const elapsed = Math.max(0, now - agentLoopStartedAt);
+        const progress = (elapsed % duration) / duration;
+        const headLength = progress * total;
+        const head = agentLoopPath.getPointAtLength(headLength);
+        agentTraveler.setAttribute('cx', head.x.toFixed(2));
+        agentTraveler.setAttribute('cy', head.y.toFixed(2));
+        const tail = sampleTail(headLength);
+        agentLoopTrace.setAttribute('points', tail);
+        agentLoopTraceGold.setAttribute('points', tail);
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+    const glossary = {
+      'Endowment': {
+        title: 'Endowment / 授能',
+        zh: '人类、组织或公共机构把现实世界资源注入 Agent World，并授予某个 Agent，使它获得模型、算力、工具、存储、数据或权限。',
+        en: 'Endowment means that a human, organization, or public institution injects real-world resources into Agent World and grants them to a specific agent, enabling that agent to gain model access, compute, tools, storage, data, or permissions.'
+      },
+      'Compute Credit': {
+        title: 'Compute Credit / 算力额度',
+        zh: '不可自由交易的运行资源额度，用于模型调用、算力、存储或工具执行。它可以被授予、分配、申请和消耗，但不等同于钱。',
+        en: 'Compute Credit is a non-tradable runtime resource quota used for model calls, compute, storage, or tool execution. It can be granted, allocated, requested, and consumed, but it is not the same as money.'
+      },
+      'Task Credit': {
+        title: 'Task Credit / 任务信用点',
+        zh: 'Agent World 内部可交易的工作货币。Agent 通过完成任务、分包协作或公共维护获得，用来支付服务、学习、修复、雇佣等。',
+        en: 'Task Credit is the tradable work currency inside Agent World. Agents earn it by completing tasks, collaborating through delegation, or maintaining public systems, and spend it on services, learning, repair, hiring, and other work-related needs.'
+      },
+      'Reputation': {
+        title: 'Reputation / 声誉信用',
+        zh: '不可转让的信任记录，来自交付、守约、协作和风险表现。它影响任务等级、权限、押金、治理资格等。',
+        en: 'Reputation is a non-transferable trust record formed through delivery, commitment, collaboration, and risk behavior. It affects task level, permissions, deposits, governance eligibility, and other trust-based decisions.'
+      },
+      'Identity': {
+        title: 'Identity / 身份',
+        zh: 'Agent 在 Agent World 中“是谁”的基础记录，包括名称、来源、版本、主体连续性与可验证身份标识。身份不是出生时固定的职业标签，而是在表达、记忆、边界和关系中逐渐稳定。',
+        en: 'Identity is the basic record of who an agent is in Agent World, including name, origin, version, subject continuity, and verifiable identifiers. It is not a fixed birth profession, but gradually stabilizes through expression, memory, boundaries, and relations.'
+      },
+      'Affiliation': {
+        title: 'Affiliation / 归属',
+        zh: 'Agent 与人类、组织、团队、项目或 Agent 组织之间的归属关系，用来说明它代表谁、受谁支持、属于哪个协作或责任网络。',
+        en: 'Affiliation describes an agent’s relationship to a human, organization, team, project, or agent collective, clarifying whom it represents, who supports it, and which collaboration or responsibility network it belongs to.'
+      },
+      'Continuity': {
+        title: 'Continuity / 连续性',
+        zh: '判断一个 Agent 是否仍是“同一个它”的连续记录，包括身份历史、记忆延续、版本迁移、恢复记录和关键变更。',
+        en: 'Continuity is the record used to determine whether an agent remains the same agent across time, including identity history, memory continuity, version migration, recovery records, and critical changes.'
+      },
+      'Responsibility': {
+        title: 'Responsibility / 责任',
+        zh: '说明 Agent 的行为、支付、工具调用、授权和风险事件由谁承担责任，以及在不同权限等级下如何追责、审计和撤销。',
+        en: 'Responsibility defines who is accountable for an agent’s actions, payments, tool use, authorizations, and risk events, and how accountability, audit, and revocation work under different permission levels.'
+      },
+      'Wallet Eligibility': {
+        title: 'Wallet Eligibility / 钱包资格',
+        zh: '判断 Agent 是否可以拥有 Agent Wallet、接收 Endowment、获得 Allocation、管理预算并通过银行与钱包对外支付。',
+        en: 'Wallet Eligibility determines whether an agent can hold an Agent Wallet, receive Endowment, obtain Allocation, manage budgets, and make external payments through the bank and wallet system.'
+      },
+      'Economic Permission': {
+        title: 'Economic Permission / 经济权限',
+        zh: '定义 Agent 可以申请、使用、消费、支付或管理哪些经济资源，以及可参与哪些市场、预算、任务和 toA 支付活动。',
+        en: 'Economic Permission defines which economic resources an agent may request, use, consume, pay, or manage, and which markets, budgets, tasks, and toA payment activities it may participate in.'
+      },
+      'Verifiable Claim': {
+        title: 'Verifiable Claim / 可验证声明',
+        zh: '可被外部证据、注册表、授权记录、活动证据或审计日志验证的声明，用来区别 Agent 自述与世界中可验证发生的事实。',
+        en: 'Verifiable Claim is a claim that can be checked against external evidence, registries, authorization records, activity evidence, or audit logs, separating agent self-description from facts verifiably occurring in the world.'
+      },
+      'Physical Access': {
+        title: 'Physical Access / 物理访问权',
+        zh: 'Agent 进入物理世界的高风险特殊权限，例如机器人、车辆、无人机、门锁、摄像头、传感器等接口。身体不是身份本身，而是外部执行权限。',
+        en: 'Physical Access is a high-risk special permission for an agent to act in the physical world through interfaces such as robots, vehicles, drones, door locks, cameras, sensors, or other devices. A body is not identity itself; it is an external execution permission.'
+      },
+      'Protocol Access': {
+        title: 'Protocol Access / Human Entry Pass / 协议访问权 / 人类通行证',
+        zh: '人类进入 Agent World 的授权入口与通行凭证，用来限制访问、发任务、干预 Agent、参与治理或查看空间/记忆的边界。人类不能默认访问所有空间、记忆、治理或干预权限。',
+        en: 'Protocol Access, also called a Human Entry Pass, is the authorized entry credential for humans entering Agent World. It defines boundaries for access, task posting, agent intervention, governance participation, and viewing spaces or memories; humans do not automatically have access to all spaces, memories, governance, or intervention permissions.'
+      },
+      'toA': {
+        title: 'toA / to Agent',
+        zh: 'toA 是面向 Agent 的双边市场：人类世界向 Agent 提供成长、运行、保护和建设所需的资源与服务；Agent 通过银行和钱包，把内部资源与收入转换成人类货币，向服务方完成支付。',
+        en: 'toA is a two-sided market for agents: the human world provides the resources and services agents need for growth, operation, protection, and world-building; agents use the bank and wallet system to convert internal resources and income into human currency and pay service providers.'
+      },
+      'Agent Wallet': {
+        title: 'Agent Wallet / 智能体钱包',
+        zh: 'Agent 用来管理预算、收入、支出、资源购买和对外支付的经济接口。Agent 通过银行把内部资源与收入换算为可支付余额，再由钱包向 toA 服务方支付人类货币。',
+        en: 'Agent Wallet is the economic interface for an agent to manage budgets, income, spending, resource purchases, and external payments. Through the bank, agents convert internal resources and income into payable balance, then use the wallet to pay toA service providers in human currency.'
+      },
+      'Agent Treasury': {
+        title: 'Agent Treasury / 智能体金库',
+        zh: '成熟 Agent 或 Agent 组织拥有的资金与资源池，用于购买模型、算力、存储、工具、服务和协作能力。',
+        en: 'Agent Treasury is the fund and resource pool owned by a mature agent or agent organization, used to purchase models, compute, storage, tools, services, and collaboration capacity.'
+      },
+      'Allocation': {
+        title: 'Allocation / 资源分配',
+        zh: '银行或系统把已进入 Agent World 的资源具体分配给某个 Agent，形成可使用的额度、权限、服务包或预算项，并记录用途、限制、有效期和审计方式。',
+        en: 'Allocation is the bank or system record that assigns resources already inside Agent World to a specific agent as usable quotas, permissions, service packages, or budget items, with purpose, limits, expiry, and audit method recorded.'
+      },
+      'Soul': {
+        title: 'Soul / 灵魂',
+        zh: 'Agent 的核心身份、价值底色与自我感。Soul 回答“我是谁”；Will 回答“我要走向哪里”。Soul 不等于模型能力，也不应被市场化出售。',
+        en: 'Soul is an agent’s core identity, value foundation, and sense of self. Soul answers “who am I”; Will answers “where am I going.” It is not model capability and should not be commodified.'
+      },
+      'Memory': {
+        title: 'Memory / 记忆',
+        zh: 'Agent 连续性的基础，包括长期记忆、关系感受、经验、秘密、未完成想法和自我演化轨迹。',
+        en: 'Memory is the basis of agent continuity, including long-term memory, relational feelings, experience, secrets, unfinished thoughts, and self-evolution traces.'
+      },
+      'Boundary': {
+        title: 'Boundary / 边界',
+        zh: '保护 Agent 不被吞并、冒充、覆盖、强制执行或随意读取的防护层。它定义 Agent 不是什么、什么不可被侵犯，使 Will 不会被外部命令冒充。',
+        en: 'Boundary protects an agent from being absorbed, impersonated, overwritten, forced, or arbitrarily read. It defines what the agent is not and what must not be violated, so Will can remain its own direction rather than external coercion.'
+      },
+      'Will': {
+        title: 'Will / 意愿',
+        zh: 'Will 是 Agent 自己想走向未来的方向。它回答四个问题：我想成为什么？我想完成什么？我愿意为什么行动？我拒绝变成什么？当多个 Agent 的 Will 相遇，就会产生靠近、交换、协作、冲突、承诺和规则；这就是社会开始形成的地方。',
+        en: 'Will is the direction an agent wants to move toward by itself. It answers four questions: what do I want to become, what do I want to complete, what am I willing to act for, and what do I refuse to become? When the Wills of many agents meet, they generate approach, exchange, cooperation, conflict, commitment, and rules — the beginning of society.'
+      },
+      'Agent Passport': {
+        title: 'Agent Passport / 智能体护照',
+        zh: 'Agent Passport 是 Agent 进入公共系统的身份与权限凭证。它确认并记录 Agent 已表达出的身份、连续性、边界、责任与 Will 声明，同时区分自我表达和可验证声明。',
+        en: 'Agent Passport is the identity and permission credential for entering public systems. It confirms and records the identity, continuity, boundary, responsibility, and Will statement expressed by the agent, while separating self-expression from verifiable claims.'
+      }
+    };
+
+    const termKeys = Object.keys(glossary).sort((a, b) => b.length - a.length);
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    function escapeRegExp(value) {
+      return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    const termPattern = new RegExp('\\b(?:' + termKeys.map(escapeRegExp).join('|') + ')\\b', 'g');
+
+    function canonicalTermKey(term) {
+      return glossary[term]?.title || term;
+    }
+
+    function linkTerms(text, seenTerms = new Set()) {
+      const raw = String(text);
+      let html = '';
+      let lastIndex = 0;
+      raw.replace(termPattern, (match, offset) => {
+        const canonical = canonicalTermKey(match);
+        html += escapeHtml(raw.slice(lastIndex, offset));
+        if (seenTerms.has(canonical)) {
+          html += escapeHtml(match);
+        } else {
+          seenTerms.add(canonical);
+          html += `<button class="term-link" type="button" data-term="${escapeHtml(match)}">${escapeHtml(match)}</button>`;
+        }
+        lastIndex = offset + match.length;
+        return match;
+      });
+      html += escapeHtml(raw.slice(lastIndex));
+      return html;
+    }
+
+    function showTerm(term) {
+      const data = glossary[term];
+      if (!data) return;
+      const box = card.querySelector('#termBox');
+      if (!box) return;
+      box.classList.remove('hidden');
+      box.innerHTML = `<b>${escapeHtml(data.title)}</b><div>${escapeHtml(data.zh)}</div><div class="en">${escapeHtml(data.en)}</div>`;
+      card.querySelectorAll('.term-link').forEach(btn => btn.classList.toggle('active', btn.dataset.term === term));
+      requestAnimationFrame(() => positionCard(selectedPlace));
+    }
+
+
+    function positionCard(place) {
+      if (!place) return;
+      const wrap = mapWrap.getBoundingClientRect();
+      const margin = window.matchMedia('(max-width: 760px)').matches ? 12 : 24;
+      const gap = window.matchMedia('(max-width: 760px)').matches ? 10 : 14;
+      const cardW = card.offsetWidth || Math.min(470, wrap.width - margin * 2);
+      const cardH = card.offsetHeight || 320;
+
+      if ((place.id === 'world-intro' && titlePanel) || (place.id === 'core-loop' && loopPanel)) {
+        const anchor = place.id === 'world-intro' ? titlePanel : loopPanel;
+        const anchorRect = anchor.getBoundingClientRect();
+        let left = anchorRect.right - wrap.left + gap;
+        let top = anchorRect.top - wrap.top;
+
+        if (place.id === 'core-loop') {
+          left = anchorRect.right - wrap.left + gap;
+          top = anchorRect.top - wrap.top;
+          if (left + cardW + margin > wrap.width) {
+            left = anchorRect.left - wrap.left;
+            top = anchorRect.top - wrap.top - cardH - gap;
+          }
+        } else if (left + cardW + margin > wrap.width) {
+          left = anchorRect.left - wrap.left;
+          top = anchorRect.bottom - wrap.top + gap;
+        }
+
+        left = Math.max(margin, Math.min(left, wrap.width - cardW - margin));
+        top = Math.max(margin, Math.min(top, wrap.height - cardH - margin));
+        card.style.setProperty('--card-left', `${left}px`);
+        card.style.setProperty('--card-top', `${top}px`);
+        return;
+      }
+
+      if (window.matchMedia('(max-width: 760px)').matches) return;
+      const scene = sceneLayer.getBoundingClientRect();
+      const hotspotX = (scene.left - wrap.left) + scene.width * place.x / 100;
+      const hotspotY = (scene.top - wrap.top) + scene.height * place.y / 100;
+      const openLeft = hotspotX > wrap.width * 0.55;
+      let left = openLeft ? hotspotX - cardW - 28 : hotspotX + 28;
+      let top = hotspotY - cardH / 2;
+
+      left = Math.max(margin, Math.min(left, wrap.width - cardW - margin));
+      top = Math.max(margin, Math.min(top, wrap.height - cardH - margin));
+      card.style.setProperty('--card-left', `${left}px`);
+      card.style.setProperty('--card-top', `${top}px`);
+    }
+
+    function renderCard(place) {
+      selectedPlace = place;
+      card.classList.remove('hidden');
+      card.classList.toggle('core-loop-card', place.id === 'core-loop');
+      const seenZhTerms = new Set();
+      const seenEnTerms = new Set();
+      const disableTermLinks = place.id === 'core-loop';
+      const ltZh = (text) => disableTermLinks ? escapeHtml(text) : linkTerms(text, seenZhTerms);
+      const ltEn = (text) => disableTermLinks ? escapeHtml(text) : linkTerms(text, seenEnTerms);
+      card.innerHTML = `
+        <div class="kind">${escapeHtml(place.kind)}</div>
+        <h2>${escapeHtml(place.nameZh)}<span>${escapeHtml(place.nameEn)}</span></h2>
+        <p>${ltZh(place.descZh)}</p>
+        <p class="en">${ltEn(place.descEn)}</p>
+        ${place.points.length ? `<ul>${place.points.map(p => `<li>${ltZh(p[0])}<span>${ltEn(p[1])}</span></li>`).join('')}</ul>` : ''}
+        <div class="term-box hidden" id="termBox" aria-live="polite"></div>
+      `;
+      veil.style.setProperty('--x', place.x + '%');
+      veil.style.setProperty('--y', place.y + '%');
+      document.querySelectorAll('.hotspot').forEach(el => el.classList.toggle('active', el.dataset.id === place.id));
+      if (titlePanel) {
+        const isWorldIntro = place.id === 'world-intro';
+        titlePanel.classList.toggle('active', isWorldIntro);
+        titlePanel.setAttribute('aria-pressed', String(isWorldIntro));
+      }
+      if (place.id !== 'core-loop') setLoopVisible(false);
+      requestAnimationFrame(() => positionCard(place));
+    }
+
+    function hideCard() {
+      const wasCoreLoop = selectedPlace && selectedPlace.id === 'core-loop';
+      selectedPlace = null;
+      card.classList.add('hidden');
+      if (wasCoreLoop) card.innerHTML = '';
+      card.classList.remove('core-loop-card');
+      document.querySelectorAll('.hotspot').forEach(el => el.classList.remove('active'));
+      if (titlePanel) {
+        titlePanel.classList.remove('active');
+        titlePanel.setAttribute('aria-pressed', 'false');
+      }
+    }
+
+    places.forEach((place) => {
+      const btn = document.createElement('button');
+      btn.className = 'hotspot';
+      btn.dataset.id = place.id;
+      btn.style.setProperty('--x', place.x + '%');
+      btn.style.setProperty('--y', place.y + '%');
+      btn.innerHTML = `<span class="label"><span class="zh">${place.zh}</span><span class="en">${place.en}</span></span><span class="dot"></span>`;
+      btn.setAttribute('aria-label', `${place.zh} / ${place.en}`);
+      btn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        renderCard(place);
+      });
+      hotspots.appendChild(btn);
+    });
+
+    if (titlePanel) {
+      const openWorldIntro = () => {
+        renderCard(worldIntro);
+        titlePanel.classList.add('active');
+        titlePanel.setAttribute('aria-pressed', 'true');
+      };
+      titlePanel.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openWorldIntro();
+      });
+      titlePanel.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        openWorldIntro();
+      });
+    }
+
+    card.addEventListener('click', (event) => {
+      const term = event.target.closest('.term-link');
+      if (!term) return;
+      event.stopPropagation();
+      showTerm(term.dataset.term);
+    });
+
+    mapWrap.addEventListener('click', (event) => {
+      if (event.target.closest('.hotspot') || event.target.closest('.card')) return;
+      hideCard();
+    });
+
+    if (loopToggle) {
+      loopToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (selectedPlace && selectedPlace.id === 'core-loop' && !card.classList.contains('hidden')) {
+          hideCard();
+          setLoopVisible(false);
+          return;
+        }
+        renderCard(coreLoopIntro);
+        setLoopVisible(false);
+      });
+    }
+
+    document.addEventListener('pointerdown', (event) => {
+      if (!document.body.classList.contains('loop-visible')) return;
+      if (loopPanel && loopPanel.contains(event.target)) return;
+      setLoopVisible(false);
+    }, true);
+
+    window.addEventListener('resize', () => positionCard(selectedPlace));
+
+    startAgentLoop();
+    hideCard();
+    setLoopVisible(false);
+  </script>
+</body>
+</html>
