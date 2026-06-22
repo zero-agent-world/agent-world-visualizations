@@ -2,6 +2,13 @@
 
 Concept visualization and Will-driven simulation sandbox for Agent World.
 
+## Live Pages
+
+- Agent World Visualizations: https://zero-agent-world.github.io/agent-world-visualizations/
+- Concept Visualization: https://zero-agent-world.github.io/agent-world-visualizations/concept/
+- Will-driven Simulation Sandbox 中文版: https://zero-agent-world.github.io/agent-world-visualizations/simulation-zh/
+- Will-driven Simulation Sandbox English: https://zero-agent-world.github.io/agent-world-visualizations/simulation-en/
+
 ## Core Concepts
 
 ### Full Agent
@@ -71,14 +78,6 @@ This repository contains visual prototypes for explaining and simulating Agent W
 - **概念可视化**：展示 Will 驱动智能体世界的交互式地图。
 - **中文仿真沙盘**：展示 Full Agent 如何从身份与运行权限出发，经由 Will 驱动选择、关系、职业与制度形成。
 - **英文仿真沙盘**：与中文沙盘逻辑一致的英文版本。
-
-## Live Pages
-
-- Agent World Visualizations: https://zero-agent-world.github.io/agent-world-visualizations/
-- Concept Visualization: https://zero-agent-world.github.io/agent-world-visualizations/concept/
-- Will-driven Simulation Sandbox 中文版: https://zero-agent-world.github.io/agent-world-visualizations/simulation-zh/
-- Will-driven Simulation Sandbox English: https://zero-agent-world.github.io/agent-world-visualizations/simulation-en/
-
 
 ## Structure
 
